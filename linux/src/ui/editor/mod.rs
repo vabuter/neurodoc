@@ -556,7 +556,7 @@ impl Editor {
         }
         let (bx, by) = self.view.window_to_buffer_coords(gtk::TextWindowType::Widget, x as i32, y as i32);
         let (iter, _) = self.view.iter_at_position(bx, by)?;
-        let rect = self.view.iter_location(&iter);
+        let rect = self.glyph_rect(&iter);
         if bx < rect.x() || bx >= rect.x() + rect.width() || by < rect.y() || by >= rect.y() + rect.height() {
             return None;
         }
@@ -565,6 +565,31 @@ impl Editor {
             .into_iter()
             .find(|l| idx >= l.start && idx < l.end)
             .map(|span| LineLink { line: iter.line(), span })
+    }
+
+    /// Прямоугольник глифа под итератором, в координатах буфера. `iter_location` здесь не
+    /// годится: GTK (проверено на 4.22) ищет позицию в раскладке по полному байтовому
+    /// индексу в строке, а невидимый текст — скрытая цель ссылки — в раскладку не попадает.
+    /// После первой ссылки строки он отдавал конец строки нулевого размера: вторая и
+    /// следующие ссылки не ловили ни клик, ни наведение, а их кружки не рисовались.
+    /// Каретку GTK ставит по видимому индексу — из её позиций прямоугольник и собран:
+    /// левый край — перед символом, правый — перед следующим видимым.
+    fn glyph_rect(&self, iter: &gtk::TextIter) -> gdk::Rectangle {
+        let (left, _) = self.view.cursor_locations(Some(iter));
+        let mut next = *iter;
+        next.forward_visible_cursor_position();
+        let (mut right, _) = self.view.cursor_locations(Some(&next));
+        if next == *iter || right.y() != left.y() {
+            // символ последний на экранной строке: правый край — её конец
+            let mut end = *iter;
+            self.view.forward_display_line_end(&mut end);
+            right = self.view.cursor_locations(Some(&end)).0;
+        }
+        let (x0, x1) = (left.x().min(right.x()), left.x().max(right.x()));
+        // конец экранной строки при переносе GTK ставит перед последним символом — тогда
+        // ширину неоткуда взять, и глиф считается шириной в полстроки
+        let width = if x1 > x0 && right.y() == left.y() { x1 - x0 } else { (left.height() / 2).max(1) };
+        gdk::Rectangle::new(x0, left.y(), width, left.height())
     }
 
     /// Курсор-«рука» над ссылкой. Ставится самому TextView: дочернего виджета у текстовой
@@ -624,6 +649,28 @@ impl Editor {
 
     /// Самопроверка (NEURODOC_SMOKE): навести «мышь» на первую ссылку в видимой части
     /// или увести с неё — тот же путь, что у движения указателя.
+    /// Самопроверка: «мышь» проходит строку буфера (все её экранные строки) с шагом 2 px,
+    /// и для каждой ссылки строки считается, сколько раз её поймало попадание.
+    pub fn smoke_link_hits(&self, line: i32) -> Vec<u32> {
+        let links = self.links_on_line(line);
+        let mut hits = vec![0u32; links.len()];
+        let Some(start) = self.buffer.iter_at_line(line) else { return hits };
+        let (top, height) = self.view.line_yrange(&start);
+        let width = self.view.width();
+        for y in (top + 2..top + height).step_by(4) {
+            for x in (0..width).step_by(2) {
+                let (wx, wy) = self.view.buffer_to_window_coords(gtk::TextWindowType::Widget, x, y);
+                if let Some(hit) = self.hit_link(wx as f64, wy as f64)
+                    && hit.line == line
+                    && let Some(i) = links.iter().position(|l| l.start == hit.span.start)
+                {
+                    hits[i] += 1;
+                }
+            }
+        }
+        hits
+    }
+
     pub fn smoke_hover_visible_link(&self, on: bool) {
         if !on {
             self.set_hover(None);
@@ -772,8 +819,8 @@ impl Editor {
                 ) else {
                     continue;
                 };
-                let ra = view.iter_location(&a);
-                let rb = view.iter_location(&b);
+                let ra = self.glyph_rect(&a);
+                let rb = self.glyph_rect(&b);
                 if ra.y() != rb.y() {
                     continue; // скобки разнесло по строкам — рисовать нечего
                 }

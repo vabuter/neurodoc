@@ -122,6 +122,7 @@ pub fn run(win: Rc<Win>, dir: String) {
         shot(&win, &dir, "18-light").await;
         win.smoke_set_theme(crate::domain::settings::ThemeMode::System);
         pause().await;
+        check_link_hits(&win).await;
         check_scroll_kept(&win).await;
         check_disk_watch(&win).await;
         win.window.close();
@@ -147,6 +148,29 @@ async fn shot(win: &Win, dir: &str, name: &str) {
         Ok(()) => eprintln!("smoke: {path}"),
         Err(e) => eprintln!("smoke: снимок {name} не удался: {e}"),
     }
+}
+
+/// Клик и наведение ловит каждая ссылка строки, а не только первая. Раньше вторая и
+/// следующие не ловились: прямоугольник глифа брался из `iter_location`, а тот после
+/// скрытой цели первой ссылки отдавал конец строки нулевого размера.
+async fn check_link_hits(win: &Rc<Win>) {
+    win.open_file("root", true);
+    win.set_view_mode(ViewMode::Text);
+    glib::timeout_future(Duration::from_millis(700)).await;
+    let lines = win.editor.buffer.line_count();
+    let Some(line) = (0..lines).find(|&l| win.editor.links_on_line(l).iter().filter(|s| !s.is_web).count() >= 2) else {
+        eprintln!("smoke: попадание не проверялось — в root нет строки с двумя ссылками");
+        return;
+    };
+    let hits = win.editor.smoke_link_hits(line);
+    let caught = hits.iter().filter(|&&h| h > 0).count();
+    let ok = caught == hits.len();
+    eprintln!(
+        "smoke: попадание — наведение ловят {caught} из {} ссылок строки {} root ({})",
+        hits.len(),
+        line + 1,
+        if ok { "верно" } else { "НЕВЕРНО" }
+    );
 }
 
 /// Прокрутка не должна сбрасываться сама. Раньше слежение за диском перечитывало каталог
