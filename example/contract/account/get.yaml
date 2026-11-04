@@ -1,0 +1,37 @@
+# account.get — профиль текущего аккаунта (/v1/me): веб и Android берут его при запуске, админка — для имени в шапке
+# и проверки роли. Своей схемы у операции нет: это чтение для экрана «Настройки»; поле deletion_at видно на схеме
+# «Удаление аккаунта: отсрочка, отмена входом и очистка».
+
+operation: account.get
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/me
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: user
+summary: "Профиль текущего аккаунта."
+
+request: {}
+response: Account
+
+golden:
+  - name: ok
+    part: response
+    value:
+      id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b
+      email: anna@example.com
+      email_confirmed: true
+      display_name: Анна
+      locale: ru
+      time_zone: Europe/Moscow
+      units: metric
+      role: user
+      totp_enabled: false
+      digest_enabled: true
+      quiet_hours_start: "22:00"
+      quiet_hours_end: "08:00"
+      created_at: "2026-09-20T17:05:11.279Z"
+    json: '{"created_at":"2026-09-20T17:05:11.279Z","digest_enabled":true,"display_name":"Анна","email":"anna@example.com","email_confirmed":true,"id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","locale":"ru","quiet_hours_end":"08:00","quiet_hours_start":"22:00","role":"user","time_zone":"Europe/Moscow","totp_enabled":false,"units":"metric"}'

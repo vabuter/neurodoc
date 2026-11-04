@@ -1,0 +1,76 @@
+# admin.sensors — парк датчиков Fikus Sense: проблемные датчики по фильтру и распределение версий прошивки по всему
+# парку. Сигнал беды — когда онлайн падают все сразу: это приём показаний, а не батарейки. Общие отказы admin.* —
+# в admin.overview. Описание — «Админка: здоровье парка датчиков»; раскатка — на схеме «Обновление прошивки по воздуху».
+
+operation: admin.sensors
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/admin/sensors
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Парк датчиков: проблемные датчики и версии прошивки."
+
+request:
+  state:
+    type: string
+    enum: [offline, battery_low, outdated]
+    desc: offline — тишина больше 3 ч; battery_low — заряд ниже 15 %; outdated — прошивка старше раскатываемой; нет — все датчики
+  cursor:
+    type: string
+    desc: next_cursor из прошлой страницы; страница — limit датчиков
+  limit:
+    type: int
+    desc: Размер страницы, по умолчанию 50, максимум 200
+
+response:
+  items:
+    type: list<Sensor>
+    required: true
+    desc: Датчики по фильтру, дольше всех молчащие сверху
+  next_cursor:
+    type: string
+    desc: Нет — страниц больше нет
+  firmware_versions:
+    type: map<string,int>
+    required: true
+    desc: Версия прошивки → число датчиков; по всему парку, без учёта фильтра
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      limit: [out_of_range]
+
+golden:
+  - name: ok
+    part: response
+    value:
+      items:
+        - id: 01a19d36-1b92-7623-bbca-eb6d4002ae45
+          serial: FS1-Y8J5TA
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+          name: Датчик у монстеры
+          state: offline
+          firmware: "1.4.1"
+          battery_pct: 12
+          last_seen_at: "2026-12-15T04:30:02.871Z"
+          last_reading:
+            at: "2026-12-15T04:30:01.000Z"
+            moisture_raw: 2480
+            moisture_pct: 29
+            temperature_dc: 198
+            light_lux: 0
+            battery_mv: 3020
+          calibrated: true
+          raw_dry: 3050
+          raw_wet: 1080
+          claimed_at: "2026-11-02T17:02:11.346Z"
+      firmware_versions:
+        "1.4.1": 2
+        "1.4.2": 17
+    json: '{"firmware_versions":{"1.4.1":2,"1.4.2":17},"items":[{"battery_pct":12,"calibrated":true,"claimed_at":"2026-11-02T17:02:11.346Z","firmware":"1.4.1","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a19d36-1b92-7623-bbca-eb6d4002ae45","last_reading":{"at":"2026-12-15T04:30:01.000Z","battery_mv":3020,"light_lux":0,"moisture_pct":29,"moisture_raw":2480,"temperature_dc":198},"last_seen_at":"2026-12-15T04:30:02.871Z","name":"Датчик у монстеры","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","raw_dry":3050,"raw_wet":1080,"serial":"FS1-Y8J5TA","state":"offline"}]}'

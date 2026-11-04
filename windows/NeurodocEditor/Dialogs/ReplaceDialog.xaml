@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="NeurodocEditor.Dialogs.ReplaceDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Поиск и замена"
+    PrimaryButtonText="Заменить всё"
+    SecondaryButtonText="Заменить"
+    CloseButtonText="Отмена"
+    DefaultButton="Primary"
+    PrimaryButtonClick="OnReplaceAllClick"
+    SecondaryButtonClick="OnReplaceOneClick">
+
+    <StackPanel Spacing="14" MinWidth="440">
+        <TextBox x:Name="FindText" Header="Найти" PlaceholderText="Строка поиска" />
+        <TextBox x:Name="ReplaceText" Header="Заменить на" PlaceholderText="Строка замены" />
+        <RadioButtons x:Name="ScopeRadios" Header="Область поиска">
+            <RadioButton Content="Текущий файл" IsChecked="True" />
+            <RadioButton Content="Весь проект" />
+        </RadioButtons>
+        <InfoBar x:Name="StatusBar" IsClosable="False" IsOpen="False" />
+    </StackPanel>
+</ContentDialog>

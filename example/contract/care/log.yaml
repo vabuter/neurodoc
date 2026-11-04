@@ -1,0 +1,69 @@
+# care.log — журнал ухода растения, новые записи сверху: выполнения, пропуски, фото, изменения плана, тревоги
+# датчика и системные записи. Журнал растёт без предела, поэтому он курсорный и в plants.get не входит; записи
+# только добавляются — общий журнал дома правке задним числом не подлежит.
+
+operation: care.log
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/plants/{plant_id}/log
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Журнал ухода растения, новые записи сверху."
+
+request:
+  plant_id:
+    type: id
+    required: true
+    desc: Растение — параметр пути; журнал архивного растения тоже открывается
+  cursor:
+    type: string
+    desc: next_cursor предыдущей страницы; без него — первая страница
+  limit:
+    type: int
+    desc: Записей на странице, по умолчанию 50, максимум 200
+  kind:
+    type: string
+    enum: [water, feed, mist, repot, rotate, skip, photo, plan, sensor, note]
+    desc: >-
+      Фильтр экрана «Журнал» по виду записи; пропуски с фильтром water приходят тоже — у них task_kind = water,
+      иначе фильтр «полив» прятал бы, что полив пропускали
+
+# Курсор непрозрачен: сервер кодирует в него (at, id) последней записи страницы, поэтому новая отметка, пока
+# человек листает, не сдвигает страницы, как сдвигал бы offset. Нет next_cursor — страниц больше нет.
+response:
+  items:
+    type: list<CareLogEntry>
+    required: true
+    desc: Записи по убыванию (at, id); пусто — «Здесь появится история ухода»
+  next_cursor:
+    type: string
+    desc: Курсор следующей страницы
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      cursor: [invalid_format]          # курсор чужого растения или испорченный
+      limit: [out_of_range]
+  - code: not_found
+    category: not_found
+    desc: Растения нет
+
+# Анна открывает журнал Бенджи 19 декабря с limit = 5: полив Бориса, опрыскивание, пропуск поворота, полив
+# и фото 6 декабря. Записи старше — на следующей странице.
+golden:
+  - name: page
+    part: response
+    value:
+      items:
+        - {id: 01a28cb6-e9b5-7f79-9982-aadec29bc0fa, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, kind: water, at: "2026-12-19T05:12:07.344Z", author_id: 01a0caa1-e44f-77de-a33d-1d51c776de69, author_name: Борис, task_id: 01a25957-8a8b-710e-9089-a2aa8c841494, amount_ml: 300}
+        - {id: 01a26e08-3105-7c92-bb3e-b8c251893acc, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, kind: mist, at: "2026-12-13T06:12:40.322Z", author_id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b, author_name: Анна, task_id: 01a24f32-14c0-779b-9619-b8ad5f03bcae}
+        - {id: 01a25e9c-7ed9-73bb-82aa-3a5eec909dab, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, kind: skip, task_kind: rotate, at: "2026-12-10T06:20:44.118Z", author_id: 01a0caa1-e44f-77de-a33d-1d51c776de69, author_name: Борис, task_id: 01a216a9-7a5c-7334-b0ba-b5bf6df3e3a0, note: Повернули вчера при уборке}
+        - {id: 01a25957-8a87-7318-943e-03bbf0199059, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, kind: water, at: "2026-12-09T05:47:19.040Z", author_id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b, author_name: Анна, task_id: 01a23f7f-4ac7-7bb5-9821-9025423a6d57, amount_ml: 250, note: Земля пересохла раньше срока — датчик показал 28 %}
+        - {id: 01a24ada-18c6-7c96-b313-da4825350cc6, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, kind: photo, at: "2026-12-06T10:14:58.000Z", author_id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b, author_name: Анна, photo_id: 01a24ada-0760-7a28-8890-540aec10ab7c}
+      next_cursor: AAABokrZgNABokraGMZ8lrMT2kglNQzG
+    json: '{"items":[{"amount_ml":300,"at":"2026-12-19T05:12:07.344Z","author_id":"01a0caa1-e44f-77de-a33d-1d51c776de69","author_name":"Борис","id":"01a28cb6-e9b5-7f79-9982-aadec29bc0fa","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","task_id":"01a25957-8a8b-710e-9089-a2aa8c841494"},{"at":"2026-12-13T06:12:40.322Z","author_id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","author_name":"Анна","id":"01a26e08-3105-7c92-bb3e-b8c251893acc","kind":"mist","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","task_id":"01a24f32-14c0-779b-9619-b8ad5f03bcae"},{"at":"2026-12-10T06:20:44.118Z","author_id":"01a0caa1-e44f-77de-a33d-1d51c776de69","author_name":"Борис","id":"01a25e9c-7ed9-73bb-82aa-3a5eec909dab","kind":"skip","note":"Повернули вчера при уборке","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","task_id":"01a216a9-7a5c-7334-b0ba-b5bf6df3e3a0","task_kind":"rotate"},{"amount_ml":250,"at":"2026-12-09T05:47:19.040Z","author_id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","author_name":"Анна","id":"01a25957-8a87-7318-943e-03bbf0199059","kind":"water","note":"Земля пересохла раньше срока — датчик показал 28 %","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","task_id":"01a23f7f-4ac7-7bb5-9821-9025423a6d57"},{"at":"2026-12-06T10:14:58.000Z","author_id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","author_name":"Анна","id":"01a24ada-18c6-7c96-b313-da4825350cc6","kind":"photo","photo_id":"01a24ada-0760-7a28-8890-540aec10ab7c","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677"}],"next_cursor":"AAABokrZgNABokraGMZ8lrMT2kglNQzG"}'

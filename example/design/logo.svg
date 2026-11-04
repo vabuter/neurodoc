@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Fikus">
+  <!-- Подложка: paper #f7f5ef — логотип читается и на тёмном фоне -->
+  <circle cx="32" cy="32" r="31" fill="#f7f5ef"/>
+  <!-- Лист фикуса: основание в (27, 47), кончик вверх-вправо; вторая половина темнее (leaf-strong) -->
+  <g transform="translate(27 47) rotate(40)">
+    <path d="M0 0C-11-5-15-17-13-26C-11-33-5-37 0-42C5-37 11-33 13-26C15-17 11-5 0 0Z" fill="#2f7d4f"/>
+    <path d="M0 0C11-5 15-17 13-26C11-33 5-37 0-42Z" fill="#22603c"/>
+    <g fill="none" stroke="#f7f5ef" stroke-linecap="round">
+      <path d="M0-3V-37" stroke-width="1.8"/>
+      <path d="M0-11L-7-17M0-11L7-17M0-21L-6-27M0-21L6-27" stroke-width="1.3"/>
+    </g>
+    <!-- Черешок -->
+    <path d="M0 0V7" fill="none" stroke="#22603c" stroke-width="2.6" stroke-linecap="round"/>
+  </g>
+  <!-- Капля цвета soil #8a5a3c у черешка, с бликом -->
+  <path d="M16 37C19 41 21 44 21 46.5A5 5 0 0 1 11 46.5C11 44 13 41 16 37Z" fill="#8a5a3c"/>
+  <ellipse cx="14" cy="46" rx="1.2" ry="2" fill="#f7f5ef" opacity="0.45"/>
+</svg>

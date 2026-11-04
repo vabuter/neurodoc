@@ -1,0 +1,102 @@
+# species.suggest — предложение нового вида в справочник. Ждать модератора, чтобы полить растение, нельзя: до
+# решения растение живёт под своим названием с профилем «обычное комнатное». Вид уже есть — это исход exists,
+# а не отказ: клиент предлагает выбрать его. Сценарий — «Предложение нового вида и модерация».
+
+operation: species.suggest
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/species/suggestions
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Предложение нового вида в справочник."
+
+request:
+  common_name:
+    type: string
+    required: true
+    desc: Народное название, 1–60 символов — им же названо растение, пока вид проверяется
+  latin_name:
+    type: string
+    desc: Латинское название, 2–80 символов, если автор его знает
+  locale:
+    type: string
+    required: true
+    enum: [ru, en]
+    desc: Язык common_name; по умолчанию клиент подставляет язык аккаунта
+  note:
+    type: string
+    desc: Заметка модератору, до 500 символов
+  plant_id:
+    type: id
+    desc: >-
+      Растение со своим названием, ради которого предложен вид, — если оно уже заведено. Без поля растение
+      привяжется позже: plants.create с тем же custom_species_name найдёт ждущее предложение автора
+
+# Совпадение ищется без учёта регистра после NFC: latin_name — с латинскими, common_name — с народными
+# названиями одобренных видов на любом языке. Выбрать найденный вид — plants.update со species_id.
+response:
+  state:
+    type: string
+    required: true
+    enum: [created, exists]
+    desc: created — предложение в очереди модерации; exists — такой вид уже есть в справочнике
+  suggestion:
+    type: SpeciesSuggestion
+    desc: Только при created — предложение в статусе pending
+  species_id:
+    type: id
+    desc: Только при exists — найденный вид
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      common_name: [required, too_long]
+      latin_name: [too_short, too_long]
+      plant_id: [not_allowed]           # растение не со своим названием или из чужого дома
+  - code: duplicate_pending
+    category: conflict
+    desc: >-
+      Такое же предложение (то же название) от этого автора уже ждёт модератора — второе ничего не добавит:
+      решение перепривяжет все растения автора с этим названием
+  - code: forbidden
+    category: forbidden
+    desc: Роль helper — вид предлагает тот, кто заводит растения
+
+# 28 ноября Борис предлагает «Фикус каучуконосный» для «Декоры», заведённой 23 секундами раньше: на ценнике
+# Ficus decora — торговое название Ficus elastica, его модератор и объединит. exists — Борис же предлагает Ficus benjamina.
+golden:
+  - name: request
+    part: request
+    value:
+      common_name: Фикус каучуконосный
+      latin_name: Ficus decora
+      locale: ru
+      note: "Так подписан в магазине: лист крупный, тёмный, глянцевый"
+      plant_id: 01a22364-5601-753e-9278-061c9481ffcb
+    json: '{"common_name":"Фикус каучуконосный","latin_name":"Ficus decora","locale":"ru","note":"Так подписан в магазине: лист крупный, тёмный, глянцевый","plant_id":"01a22364-5601-753e-9278-061c9481ffcb"}'
+  - name: created
+    part: response
+    value:
+      state: created
+      suggestion:
+        id: 01a22364-aded-750f-ba82-126b74c533df
+        latin_name: Ficus decora
+        common_name: Фикус каучуконосный
+        locale: ru
+        note: "Так подписан в магазине: лист крупный, тёмный, глянцевый"
+        author_id: 01a0caa1-e44f-77de-a33d-1d51c776de69
+        plant_id: 01a22364-5601-753e-9278-061c9481ffcb
+        status: pending
+        created_at: "2026-11-28T18:22:10.413Z"
+    json: '{"state":"created","suggestion":{"author_id":"01a0caa1-e44f-77de-a33d-1d51c776de69","common_name":"Фикус каучуконосный","created_at":"2026-11-28T18:22:10.413Z","id":"01a22364-aded-750f-ba82-126b74c533df","latin_name":"Ficus decora","locale":"ru","note":"Так подписан в магазине: лист крупный, тёмный, глянцевый","plant_id":"01a22364-5601-753e-9278-061c9481ffcb","status":"pending"}}'
+  - name: exists
+    part: response
+    value:
+      state: exists
+      species_id: 019fc710-e100-7448-a192-990183571c83
+    json: '{"species_id":"019fc710-e100-7448-a192-990183571c83","state":"exists"}'

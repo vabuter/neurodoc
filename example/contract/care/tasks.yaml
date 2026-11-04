@@ -1,0 +1,82 @@
+# care.tasks — задачи ухода дома за период: из неё собираются экран «Сегодня» (from = to = сегодня) и неделя.
+# Даты — дни по поясу дома, а не телефона. Просроченные открытые задачи приходят всегда, пока их не закрыли:
+# «Сегодня» показывает их сверху с пометкой «с 17 декабря». Сценарий — «Выполнение задачи ухода».
+
+operation: care.tasks
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/houses/{house_id}/tasks
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Задачи ухода дома за период — экран «Сегодня» и неделя."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути
+  from:
+    type: date
+    required: true
+    desc: Первый день периода по поясу дома, YYYY-MM-DD
+  to:
+    type: date
+    required: true
+    desc: Последний день включительно; период не длиннее 31 дня
+
+# Курсора нет: за 31 день при 200 растениях и пяти видах задач список всё равно ограничен.
+response:
+  items:
+    type: list<CareTask>
+    required: true
+    desc: >-
+      Задачи, чей день по поясу дома попадает в период, в любом состоянии (выполненные — серыми, «сделал Борис»),
+      день отложенной — по snoozed_until; плюс открытые просроченные до from. Порядок — по due_at, затем по
+      прозвищу растения. Пусто — «Сегодня растения отдыхают» и дата ближайшей задачи из plants.list
+
+errors:
+  - code: range_too_long
+    category: validation
+    desc: Период длиннее 31 дня
+  - code: invalid_fields
+    category: validation
+    fields:
+      from: [required, invalid_format]
+      to: [required, invalid_format, out_of_range]   # to раньше from
+  - code: forbidden
+    category: forbidden
+    desc: Пользователь не состоит в доме
+
+# 19 декабря, 08:01 по Москве, from = to = 2026-12-19: опрыскивание калатеи просрочено с 17-го и идёт первым,
+# дальше два полива на сегодня — те же, о которых пришло напоминание care.task_due.
+golden:
+  - name: today
+    part: response
+    value:
+      items:
+        - id: 01a27837-3163-71a3-ab8a-fac16d99027d
+          plant_id: 01a1b588-86b8-7606-ab6b-ce77d77d6a4b
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          plant_name: Калатея
+          kind: mist
+          due_at: "2026-12-17T05:00:00.000Z"
+          state: open
+        - id: 01a25957-8a8b-710e-9089-a2aa8c841494
+          plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          plant_name: Бенджи
+          kind: water
+          due_at: "2026-12-19T05:00:00.000Z"
+          state: open
+        - id: 01a24f33-a848-77cd-81b4-79ecc38a36b2
+          plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          plant_name: Монстера в спальне
+          kind: water
+          due_at: "2026-12-19T05:00:00.000Z"
+          state: open
+    json: '{"items":[{"due_at":"2026-12-17T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a27837-3163-71a3-ab8a-fac16d99027d","kind":"mist","plant_id":"01a1b588-86b8-7606-ab6b-ce77d77d6a4b","plant_name":"Калатея","state":"open"},{"due_at":"2026-12-19T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a25957-8a8b-710e-9089-a2aa8c841494","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"},{"due_at":"2026-12-19T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a24f33-a848-77cd-81b4-79ecc38a36b2","kind":"water","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","plant_name":"Монстера в спальне","state":"open"}]}'

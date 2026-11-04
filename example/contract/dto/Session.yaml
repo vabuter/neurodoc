@@ -1,0 +1,51 @@
+# Session — сессия, то есть вошедшее устройство: строка экрана «Сессии» (/settings/sessions), ответ auth.sessions.
+# Id сессии — он же sid в access-токене; по нему отзыв действует сразу, через кэш отозванных сессий в fikus-api.
+
+dto: Session
+status: live
+since: v1
+clients: [app, admin, android, server]
+summary: "Сессия — вошедшее устройство."
+
+fields:
+  id:
+    type: id
+    required: true
+    desc: UUIDv7 сессии, он же sid в access-токене
+  device_name:
+    type: string
+    required: true
+    desc: Имя, которое прислал клиент при входе, до 64 символов — «Firefox на Linux», «Телефон Анны»
+  platform:
+    type: string
+    required: true
+    enum: [web, android, ios]
+    desc: Платформа клиента; пара (platform, device_name) решает, нужно ли письмо о новом входе
+  created_at:
+    type: time
+    required: true
+    desc: Момент входа
+  last_seen_at:
+    type: time
+    required: true
+    desc: Последний запрос с этой сессией; обновляется не чаще раза в 10 мин, чтобы не писать в базу на каждый запрос
+  ip_prefix:
+    type: string
+    required: true
+    desc: Сеть последнего запроса — /24 для IPv4 (203.0.113.0/24), /48 для IPv6 (2001:db8:42::/48); полный адрес не хранится
+  current:
+    type: bool
+    required: true
+    desc: true у сессии, которой сделан запрос, — «это устройство»; её закрывает auth.logout, остальные — auth.session_revoke
+
+golden:
+  - name: web
+    value:
+      id: 01a27911-acc7-72da-ac16-55fdcc096295
+      device_name: Firefox на Linux
+      platform: web
+      created_at: "2026-12-15T09:38:51.207Z"
+      last_seen_at: "2026-12-15T09:38:51.207Z"
+      ip_prefix: 203.0.113.0/24
+      current: true
+    json: '{"created_at":"2026-12-15T09:38:51.207Z","current":true,"device_name":"Firefox на Linux","id":"01a27911-acc7-72da-ac16-55fdcc096295","ip_prefix":"203.0.113.0/24","last_seen_at":"2026-12-15T09:38:51.207Z","platform":"web"}'

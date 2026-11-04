@@ -1,0 +1,130 @@
+# Plant — растение дома: свойства, от которых считается план, и то, что показывает карточка. Форма зависит от
+# операции: plan — в plants.get и plants.create, photos — только в plants.get, в plants.list next_tasks — одна
+# ближайшая задача. Полный зимний ответ plants.get — JSON-пример каталога; golden ниже — форма plants.list.
+
+dto: Plant
+status: live
+since: v1
+clients: [app, android, server]
+summary: "Растение дома со всеми свойствами, планом и ближайшими задачами."
+
+fields:
+  id:
+    type: id
+    required: true
+  house_id:
+    type: id
+    required: true
+    desc: Дом-владелец; между домами растение не переходит
+  species_id:
+    type: id
+    desc: Вид из справочника; поля нет, пока растение живёт под своим названием
+  species_name:
+    type: string
+    required: true
+    desc: >-
+      Название вида на языке аккаунта из Species.names, без перевода — латинское; у растения со своим названием —
+      то, что ввёл пользователь
+  custom_species:
+    type: bool
+    required: true
+    desc: >-
+      true — вида нет в справочнике: план идёт по профилю «обычное комнатное» (полив 7, подкормка 30, без
+      опрыскивания, поворот 14, пересадка 24 мес.), пока модератор не одобрит или не объединит предложение
+  species_pending:
+    type: bool
+    desc: Только со значением true — предложенный вид ждёт модератора; карточка пишет «Своё название, вид проверяется»
+  nickname:
+    type: string
+    required: true
+    desc: Прозвище, 1–40 символов — «Бенджи», «Монстера в спальне»
+  pot_material:
+    type: string
+    required: true
+    enum: [plastic, ceramic, clay, glass]
+    desc: Материал горшка — коэффициент полива clay 85, plastic 100, ceramic 110, glass 120
+  pot_diameter_cm:
+    type: int
+    desc: Диаметр горшка 5–80 см; в план не входит — нужен, чтобы подобрать горшок при пересадке
+  pot_drainage:
+    type: bool
+    required: true
+    desc: Есть ли отверстие в дне; false — полив реже ещё в 1,2 раза (вода стоит на дне)
+  soil:
+    type: string
+    required: true
+    enum: [universal, cactus, orchid_bark, peat, custom]
+    desc: >-
+      Грунт сдвигает коридор влажности вида для датчика: cactus −10 пунктов, peat +5; на orchid_bark датчик не
+      рекомендуется и план по нему не двигается; universal и custom — без сдвига
+  location_room:
+    type: string
+    desc: Комната, до 40 символов, — людям, чтобы найти растение; в план не входит
+  window:
+    type: string
+    required: true
+    enum: [north, east, south, west, none]
+    desc: Сторона окна; none — растение не у окна. Объясняет людям свет, план считает только light
+  light:
+    type: string
+    required: true
+    enum: [low, medium, bright, direct]
+    desc: Освещённость — коэффициент полива direct 80, bright 90, medium 100, low 125
+  cover_photo:
+    type: Photo
+    desc: Обложка в сетке и на карточке; первое фото растения становится обложкой само, сменить — plants.update
+  photos:
+    type: list<Photo>
+    desc: Только в plants.get и там всегда, пустой список — фото нет; до 20 фото, по дате съёмки от новых
+  sensor:
+    type: Sensor
+    desc: >-
+      Датчик Fikus Sense в горшке, если есть. Поле в статусе draft вместе с Sensor: до пилота его форма может
+      меняться, клиенты live-операций обязаны переживать отсутствие поля и незнакомые вложенные поля
+  plan:
+    type: CarePlan
+    desc: Только в plants.get и plants.create — пункты плана с множителями для экрана «Почему так»
+  next_tasks:
+    type: list<CareTask>
+    required: true
+    desc: >-
+      Открытые и отложенные задачи на ближайшие 7 дней по поясу дома вместе с просроченными, по возрастанию
+      due_at, не больше 5; в plants.list — одна ближайшая, сетке больше не нужно. У архивного растения — пусто
+  created_at:
+    type: time
+    required: true
+  archived_at:
+    type: time
+    desc: Момент архивации; есть — растение только для чтения, журнал открывается
+  archive_reason:
+    type: string
+    enum: [gifted, died, other]
+    desc: Только у архивного — причина из plants.archive; карточка пишет «Подарено», «Погибло» или «В архиве»
+
+# Бенджи 30 октября, сразу после полива: датчика и фото ещё нет, ближайшая задача — опрыскивание.
+golden:
+  - name: benji_in_list
+    value:
+      id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      species_id: 019fc710-e100-7448-a192-990183571c83
+      species_name: Фикус Бенджамина
+      custom_species: false
+      nickname: Бенджи
+      pot_material: ceramic
+      pot_diameter_cm: 18
+      pot_drainage: true
+      soil: universal
+      location_room: гостиная
+      window: east
+      light: bright
+      next_tasks:
+        - id: 01a17bf0-0f83-7977-9852-2186db4e9807
+          plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          plant_name: Бенджи
+          kind: mist
+          due_at: "2026-10-31T05:00:00.000Z"
+          state: open
+      created_at: "2026-10-04T12:31:47.090Z"
+    json: '{"created_at":"2026-10-04T12:31:47.090Z","custom_species":false,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","light":"bright","location_room":"гостиная","next_tasks":[{"due_at":"2026-10-31T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a17bf0-0f83-7977-9852-2186db4e9807","kind":"mist","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"}],"nickname":"Бенджи","pot_diameter_cm":18,"pot_drainage":true,"pot_material":"ceramic","soil":"universal","species_id":"019fc710-e100-7448-a192-990183571c83","species_name":"Фикус Бенджамина","window":"east"}'

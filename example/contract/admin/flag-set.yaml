@@ -1,0 +1,60 @@
+# admin.flag_set — включение или выключение флага функции; запись в audit_log. Флаг не заменяет релиз: код за флагом
+# всё равно проходит план ручной проверки. Клиентские флаги уходят в system.config, сервер перечитывает таблицу settings
+# раз в 30 с. Общие отказы admin.* — в admin.overview. Схемы нет: это действие раздела «Сборка».
+
+operation: admin.flag_set
+kind: request
+transport: http
+http:
+  method: PUT
+  path: /v1/admin/flags/{key}
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Включение или выключение флага функции."
+
+request:
+  key:
+    type: string
+    required: true
+    enum: [species_suggestions, sensor_pairing_web, digest_email, ios_beta]
+    desc: Флаг; параметр пути
+  enabled:
+    type: bool
+    required: true
+
+response:
+  key:
+    type: string
+    required: true
+  enabled:
+    type: bool
+    required: true
+  changed_at:
+    type: time
+    required: true
+  changed_by:
+    type: id
+    required: true
+    desc: Администратор, который переключил флаг
+
+errors:
+  - code: flag_unknown
+    category: not_found
+    desc: Такого ключа нет — флаги заводятся миграцией, а не из админки
+
+golden:
+  - name: request
+    part: request
+    value:
+      enabled: false
+    json: '{"enabled":false}'
+  - name: digest_off
+    part: response
+    value:
+      key: digest_email
+      enabled: false
+      changed_at: "2026-12-15T09:45:30.120Z"
+      changed_by: 019e1b4e-e458-70aa-b7d8-7b10a820a54a
+    json: '{"changed_at":"2026-12-15T09:45:30.120Z","changed_by":"019e1b4e-e458-70aa-b7d8-7b10a820a54a","enabled":false,"key":"digest_email"}'

@@ -1,0 +1,88 @@
+# invites.create — приглашение в дом: код из 8 символов Crockford Base32 и ссылка. Fikus не ищет людей по почте и
+# сам приглашений не рассылает: owner передаёт код как удобно, а сервер не узнаёт адреса приглашённого. Только
+# owner. Отозвать приглашение в MVP нельзя — оно живёт 72 ч и одноразовое. Сценарий — «Приглашение в дом».
+
+operation: invites.create
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/houses/{house_id}/invites
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Создать приглашение в дом: код и ссылка."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути
+  role:
+    type: string
+    required: true
+    enum: [member, helper]
+    desc: Роль вступившего; owner приглашением не выдаётся — только houses.member_update после вступления
+  access_until:
+    type: time
+    desc: Конец доступа — обязателен для helper, в будущем; для отпуска — не раньше его конца
+
+response:
+  code:
+    type: string
+    required: true
+    desc: >-
+      8 символов Crockford Base32 без I, L, O, U, криптографически случайные; клиент показывает 7K3Q-X9MD, чтобы
+      легче читать вслух. Перебор закрывает лимит invites.preview, а не длина кода
+  url:
+    type: url
+    required: true
+    desc: Ссылка https://app.fikus.example/i/<код> — открывает invites.preview без входа; на стенде свой хост
+  expires_at:
+    type: time
+    required: true
+    desc: Момент создания + 72 ч — хватает на выходные, а забытая в общем чате ссылка быстро перестаёт работать
+
+errors:
+  - code: helper_needs_until
+    category: validation
+    desc: Роль helper без access_until
+  - code: invalid_fields
+    category: validation
+    fields:
+      access_until: [out_of_range, not_allowed]   # в прошлом; у member
+  - code: invite_limit
+    category: conflict
+    desc: У дома уже 5 активных приглашений — «Активных приглашений уже 5»; неиспользованные истекут сами
+  - code: house_member_limit
+    category: conflict
+    desc: В доме уже 10 участников вместе с помощниками
+  - code: forbidden
+    category: forbidden
+    desc: Не owner
+
+# 20 декабря Анна приглашает соседку Веру помощником до дня после конца будущего отпуска.
+golden:
+  - name: request
+    part: request
+    value:
+      role: helper
+      access_until: "2027-01-14T05:00:00.000Z"
+    json: '{"access_until":"2027-01-14T05:00:00.000Z","role":"helper"}'
+  - name: ok
+    part: response
+    value:
+      code: 7K3QX9MD
+      url: "https://app.fikus.example/i/7K3QX9MD"
+      expires_at: "2026-12-23T15:58:13.402Z"
+    json: '{"code":"7K3QX9MD","expires_at":"2026-12-23T15:58:13.402Z","url":"https://app.fikus.example/i/7K3QX9MD"}'
+  - name: invite_limit
+    part: problem
+    value:
+      code: invite_limit
+      category: conflict
+      message: Активных приглашений уже 5 — неиспользованные истекут через 72 часа после создания
+      fields: []
+      request_id: 01a1c6a2-5a37-77eb-ba4f-8218180b0113
+    json: '{"category":"conflict","code":"invite_limit","fields":[],"message":"Активных приглашений уже 5 — неиспользованные истекут через 72 часа после создания","request_id":"01a1c6a2-5a37-77eb-ba4f-8218180b0113"}'

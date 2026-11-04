@@ -1,0 +1,124 @@
+# Шаг 2. PostgreSQL 16, fikus-api и резервное копирование
+
+[Часть процедуры установки сервера с нуля](3a9c6939-c7b9-44b0-962b-33355477060e).
+
+## PostgreSQL 16
+
+В Debian 12 штатный PostgreSQL — 15, поэтому сначала подключается репозиторий PGDG скриптом из пакета postgresql-common (он спросит подтверждение):
+
+```bash
+apt install -y postgresql-common
+/usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+apt install -y postgresql-16
+sudo -u postgres createuser fikus
+sudo -u postgres createdb -O fikus fikus
+sudo -u postgres psql -d fikus -c 'CREATE EXTENSION pg_trgm' -c 'CREATE EXTENSION btree_gist'
+```
+
+Роль fikus входит по unix-сокету через peer: вместо пароля сверяется имя пользователя ОС, поэтому пароля базы, который мог бы утечь, нет вовсе. Расширения ставятся здесь от postgres, а миграции их только проверяют: pg_trgm нужен поиску видов, btree_gist — ограничению «отпуска одного дома не пересекаются».
+
+Настройки под 4 ГБ памяти — файлом /etc/postgresql/16/main/conf.d/fikus.conf, затем systemctl restart postgresql:
+- shared_buffers = 1GB — четверть памяти, остальное оставлено кэшу ОС и fikus-api;
+- work_mem = 16MB — на одну сортировку; при 50 соединениях это с запасом;
+- max_connections = 50 — пул fikus-api, резервная копия и psql администратора; каждое лишнее соединение — отдельный процесс и память, которой на 4 ГБ нет;
+- listen_addresses не трогаем — localhost: снаружи базы не видно.
+
+## fikus-api
+
+Первый релиз — v0.9.0 из артефактов CI; дальше релизы выкладывает скрипт деплоя тем же способом — каталог версии и ссылка на него:
+
+```bash
+install -d /opt/fikus/releases/v0.9.0
+install -m 0755 fikus-api /opt/fikus/releases/v0.9.0/fikus-api
+ln -sfn /opt/fikus/releases/v0.9.0/fikus-api /opt/fikus/bin/fikus-api
+install -m 0640 -g fikus fikus.toml /etc/fikus/fikus.toml
+install -m 0600 fikus.env /etc/fikus/fikus.env
+openssl genpkey -algorithm ed25519 -out /etc/fikus/jwt-ed25519.key
+chown fikus: /etc/fikus/jwt-ed25519.key && chmod 0600 /etc/fikus/jwt-ed25519.key
+```
+
+fikus.toml берётся из репозитория (server/deploy/fikus.toml), в fikus.env плейсхолдеры ${FIKUS_…} заменяются значениями из менеджера паролей — что где лежит, описывает [конфигурация сервера](5ec70900-74c9-44dd-b9b7-88c75a8c0618). fikus.env читает systemd от root, поэтому владелец root и права 0600; ключ подписи токенов читает уже сам процесс, поэтому его владелец — fikus, права те же 0600.
+
+Текст [unit-файла fikus-api.service](00e0ec78-2e83-47f6-afe6-3249b219d8b1) ложится в /etc/systemd/system/fikus-api.service (путь — в его первой строке):
+
+```bash
+systemctl daemon-reload
+systemctl enable --now fikus-api
+curl -fsS http://127.0.0.1:8080/health
+```
+
+Ответ — {"status":"ok","version":"v0.9.0"}. Миграции схемы fikus-api применяет сам при старте, под advisory-lock — отдельной команды нет ([хранение данных](ecf6dfa8-05f3-4264-a02b-66f6b465e863)).
+
+Логи fikus-api пишет сам в /var/log/fikus/api.log; ротация — ежедневно, 14 дней. Процесс держит файл открытым, поэтому после ротации получает SIGHUP и переоткрывает его — без перезапуска и без потерянных строк:
+
+```bash
+cat > /etc/logrotate.d/fikus <<'EOF'
+/var/log/fikus/api.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    postrotate
+        systemctl kill -s HUP fikus-api.service
+    endscript
+}
+EOF
+```
+
+## Резервное копирование
+
+```bash
+apt install -y age rclone
+install -m 0755 fikus-backup.sh /opt/fikus/bin/fikus-backup.sh
+install -m 0644 backup.age.pub /etc/fikus/backup.age.pub
+install -m 0600 /dev/null /etc/fikus/backup.env
+```
+
+Сам [скрипт резервного копирования fikus-backup.sh](66f8d82a-d296-4cb5-adc3-cf4a37fd5396) секретов не содержит. Ключи корзины лежат в /etc/fikus/backup.env (0600, читает systemd) переменными, из которых rclone собирает remote fikus_s3; файла rclone.conf с ключами нет. Имя remote — с подчёркиванием: переменные rclone ищет как RCLONE_CONFIG_<ИМЯ>_<ПАРАМЕТР>, и имя с дефисом из окружения не собрать.
+
+```ini
+# /etc/fikus/backup.env
+RCLONE_CONFIG_FIKUS_S3_TYPE=s3
+RCLONE_CONFIG_FIKUS_S3_PROVIDER=Other
+RCLONE_CONFIG_FIKUS_S3_ENDPOINT=s3.fikus.example
+RCLONE_CONFIG_FIKUS_S3_ACCESS_KEY_ID=${FIKUS_BACKUP_S3_KEY_ID}
+RCLONE_CONFIG_FIKUS_S3_SECRET_ACCESS_KEY=${FIKUS_BACKUP_S3_SECRET}
+```
+
+Ключ корзины fikus-backups — только на запись: укравший сервер не прочтёт и не сотрёт старые копии, а срок хранения 30 дней задаёт правило самой корзины. Сервис и таймер:
+
+```ini
+# /etc/systemd/system/fikus-backup.service
+[Unit]
+Description=Fikus: резервная копия базы
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=fikus
+EnvironmentFile=/etc/fikus/backup.env
+ExecStart=/opt/fikus/bin/fikus-backup.sh
+
+# /etc/systemd/system/fikus-backup.timer
+[Unit]
+Description=Fikus: ночная резервная копия
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Persistent=true: если в 03:30 сервер был выключен, копия делается сразу после включения. Первая копия — сразу, не дожидаясь ночи; восстановление из неё проверяется вручную первого числа каждого месяца:
+
+```bash
+systemctl daemon-reload
+systemctl enable --now fikus-backup.timer
+systemctl start fikus-backup.service
+journalctl -t fikus-backup -n 5
+```
+
+Дальше — [шаг 3: nginx, TLS и статика](5114115d-469e-4944-8304-ad658dd533ab).

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="NeurodocEditor.Dialogs.HotkeysDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Горячие клавиши"
+    CloseButtonText="Закрыть"
+    DefaultButton="Close">
+
+    <ScrollViewer MaxHeight="520" VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="Rows" Spacing="6" MinWidth="440" Margin="0,4,12,4" />
+    </ScrollViewer>
+</ContentDialog>

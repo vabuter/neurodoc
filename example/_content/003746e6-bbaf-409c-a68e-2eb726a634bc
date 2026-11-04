@@ -1,0 +1,142 @@
+{"$comment": "Fikus: полный ответ plants.get — карточка растения",
+  "$links": [
+    "операция — [plants.get](../contract/plants/get.yaml), GET /v1/plants/{plant_id}",
+    "DTO — [Plant](../contract/dto/Plant.yaml), [CarePlan](../contract/dto/CarePlan.yaml), [CarePlanItem](../contract/dto/CarePlanItem.yaml), [CareTask](../contract/dto/CareTask.yaml), [Sensor](../contract/dto/Sensor.yaml), [Photo](../contract/dto/Photo.yaml), [SensorReading](../contract/dto/SensorReading.yaml)",
+    "правила — [формат обмена](7f59a34b-3884-494b-be42-4d9137daa55a): время RFC 3339 в UTC с миллисекундами, id — UUIDv7, дробных чисел нет",
+    "откуда цифры плана — [план ухода](2b9d73df-16ad-413a-aa5c-1e02a046d5cd): зима, ceramic, bright → полив 7 × 150 % × 110 % × 90 % ≈ 10,4 → 10 дней",
+    "экран — [экраны растений](20fa06bb-24ad-4c97-8fb1-cb54cacce033), «Карточка растения»; дом «Квартира на Лесной», пояс Europe/Moscow, запрос 15 декабря в 12:40 по дому"
+  ],
+  "id": "01a106e6-1f92-7a2d-a21c-7b73545b7677",
+  "house_id": "01a0bfc7-6674-75b3-9f0c-50151ec9cc4c",
+  "species_id": "019fc710-e100-7448-a192-990183571c83",
+  "species_name": "Фикус Бенджамина",
+  "custom_species": false,
+  "nickname": "Бенджи",
+  "pot_material": "ceramic",
+  "pot_diameter_cm": 18,
+  "pot_drainage": true,
+  "soil": "universal",
+  "location_room": "гостиная",
+  "window": "east",
+  "light": "bright",
+  "cover_photo": {
+    "id": "01a24ada-0760-7a28-8890-540aec10ab7c",
+    "plant_id": "01a106e6-1f92-7a2d-a21c-7b73545b7677",
+    "state": "ready",
+    "url": "подписанная ссылка, 1 ч",
+    "thumb_url": "подписанная ссылка, 1 ч",
+    "width": 960,
+    "height": 1280,
+    "taken_at": "2026-12-06T10:14:58.000Z",
+    "created_at": "2026-12-06T10:15:32.448Z"
+  },
+  "photos": [
+    {
+      "id": "01a24ada-0760-7a28-8890-540aec10ab7c",
+      "plant_id": "01a106e6-1f92-7a2d-a21c-7b73545b7677",
+      "state": "ready",
+      "url": "подписанная ссылка, 1 ч",
+      "thumb_url": "подписанная ссылка, 1 ч",
+      "width": 960,
+      "height": 1280,
+      "taken_at": "2026-12-06T10:14:58.000Z",
+      "created_at": "2026-12-06T10:15:32.448Z"
+    }
+  ],
+  "sensor": {
+    "id": "01a15889-fa80-7c1d-b5ef-024d3b1f8bed",
+    "serial": "FS1-4Q7D2M",
+    "house_id": "01a0bfc7-6674-75b3-9f0c-50151ec9cc4c",
+    "plant_id": "01a106e6-1f92-7a2d-a21c-7b73545b7677",
+    "name": "Датчик у Бенджи",
+    "state": "online",
+    "firmware": "1.4.2",
+    "battery_pct": 58,
+    "last_seen_at": "2026-12-15T09:30:03.412Z",
+    "last_reading": {
+      "at": "2026-12-15T09:30:01.000Z",
+      "moisture_raw": 2210,
+      "moisture_pct": 41,
+      "temperature_dc": 215,
+      "light_lux": 5400,
+      "battery_mv": 3240
+    },
+    "calibrated": true,
+    "raw_dry": 3010,
+    "raw_wet": 1060,
+    "claimed_at": "2026-11-02T16:48:27.903Z"
+  },
+  "plan": {
+    "plant_id": "01a106e6-1f92-7a2d-a21c-7b73545b7677",
+    "season": "winter",
+    "computed_at": "2026-12-15T09:30:03.655Z",
+    "items": [
+      {
+        "kind": "water",
+        "base_days": 7,
+        "factors": {"season": 150, "pot": 110, "light": 90},
+        "interval_days": 10,
+        "next_due_at": "2026-12-19T05:00:00.000Z",
+        "paused": false,
+        "adjusted_by_sensor": false
+      },
+      {
+        "kind": "feed",
+        "base_days": 14,
+        "factors": {},
+        "interval_days": 14,
+        "paused": true,
+        "pause_reason": "winter_rest",
+        "adjusted_by_sensor": false
+      },
+      {
+        "kind": "mist",
+        "base_days": 4,
+        "factors": {"season": 100},
+        "interval_days": 4,
+        "next_due_at": "2026-12-17T05:00:00.000Z",
+        "paused": false,
+        "adjusted_by_sensor": false
+      },
+      {
+        "kind": "repot",
+        "base_days": 730,
+        "factors": {},
+        "interval_days": 730,
+        "next_due_at": "2028-10-03T05:00:00.000Z",
+        "paused": false,
+        "adjusted_by_sensor": false
+      },
+      {
+        "kind": "rotate",
+        "base_days": 14,
+        "factors": {},
+        "interval_days": 14,
+        "next_due_at": "2026-12-24T05:00:00.000Z",
+        "paused": false,
+        "adjusted_by_sensor": false
+      }
+    ]
+  },
+  "next_tasks": [
+    {
+      "id": "01a26e08-310a-717c-9211-cbe189627f64",
+      "plant_id": "01a106e6-1f92-7a2d-a21c-7b73545b7677",
+      "house_id": "01a0bfc7-6674-75b3-9f0c-50151ec9cc4c",
+      "plant_name": "Бенджи",
+      "kind": "mist",
+      "due_at": "2026-12-17T05:00:00.000Z",
+      "state": "open"
+    },
+    {
+      "id": "01a25957-8a8b-710e-9089-a2aa8c841494",
+      "plant_id": "01a106e6-1f92-7a2d-a21c-7b73545b7677",
+      "house_id": "01a0bfc7-6674-75b3-9f0c-50151ec9cc4c",
+      "plant_name": "Бенджи",
+      "kind": "water",
+      "due_at": "2026-12-19T05:00:00.000Z",
+      "state": "open"
+    }
+  ],
+  "created_at": "2026-10-04T12:31:47.090Z"
+}

@@ -1,0 +1,106 @@
+# auth.start — первый шаг входа и регистрации (identifier-first): клиент присылает только адрес и получает flow.
+# Есть ли аккаунт, не проверяется вовсе — ответ одинаков по содержанию и по времени (ADR-006); при подозрительной
+# активности вместо flow — вычислительная задача (ADR-014). Сценарий — «Вход: identifier-first, вычислительная задача и второй фактор».
+
+operation: auth.start
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/start
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: none
+summary: "Начало входа или регистрации по адресу: identifier-first, ответ одинаков для любых адресов."
+
+request:
+  email:
+    type: string
+    required: true
+    desc: Адрес как введён, до 254 символов; сервер обрезает пробелы, приводит к NFC и нижнему регистру
+  challenge_id:
+    type: id
+    desc: Задача из прошлого ответа state challenge; приходит вместе с challenge_nonce
+  challenge_nonce:
+    type: string
+    desc: >-
+      Решение, до 32 символов: строка, при которой SHA-256(challenge_prefix ‖ nonce в UTF-8) начинается
+      с challenge_bits нулевых бит; клиенты перебирают десятичный счётчик
+
+response:
+  state:
+    type: string
+    required: true
+    enum: [ok, challenge]
+    desc: ok — flow открыт; challenge — сначала решить задачу и повторить запрос с решением
+  flow_id:
+    type: id
+    desc: При ok — поток входа для auth.login, auth.register и auth.reset_request
+  methods:
+    type: list<string>
+    desc: При ok — способы входа, сейчас всегда [password]; список — чтобы новый способ не ломал клиентов
+  expires_at:
+    type: time
+    desc: При ok — конец жизни flow, сейчас + 30 мин
+  challenge_id:
+    type: id
+    desc: При challenge — id задачи; задача одноразовая и годится только для этого адреса
+  challenge_prefix:
+    type: string
+    desc: При challenge — 16 случайных байт в base64url без выравнивания, 22 символа
+  challenge_bits:
+    type: int
+    desc: При challenge — сложность, обычно 18 бит (0,5–2 с в браузере), под атакой 20
+  challenge_expires_at:
+    type: time
+    desc: При challenge — задача живёт 2 мин
+
+# Задача выдаётся, если с IP больше 10 auth.start за 10 мин или у адреса 3 неудачных пароля за 15 мин;
+# счётчики адреса ведутся и для несуществующих адресов — иначе разница в поведении выдала бы аккаунт.
+errors:
+  - code: invalid_email
+    category: validation
+    desc: Не адрес или длиннее 254 символов
+  - code: challenge_invalid
+    category: validation
+    desc: Решение неверное, просроченное, повторное или для другого адреса — клиент повторяет запрос без решения
+  - code: rate_limited
+    category: rate_limit
+    desc: Больше 30 auth.start с одного IP (у IPv6 — с префикса /64) за 10 мин; retry_after — секунды до конца окна
+
+golden:
+  - name: ok
+    part: response
+    value:
+      state: ok
+      flow_id: 0192f1c4-5e6a-7b3c-9d10-2a3b4c5d6e7f
+      methods: [password]
+      expires_at: "2026-03-14T08:00:00.000Z"
+    json: '{"expires_at":"2026-03-14T08:00:00.000Z","flow_id":"0192f1c4-5e6a-7b3c-9d10-2a3b4c5d6e7f","methods":["password"],"state":"ok"}'
+  - name: challenge
+    part: response
+    value:
+      state: challenge
+      challenge_id: 019ceb40-7ef0-7dd0-8bd7-7e0222ced882
+      challenge_prefix: HlGA84Ol3PMa4jnlmZ-Oaw
+      challenge_bits: 18
+      challenge_expires_at: "2026-03-14T07:31:58.512Z"
+    json: '{"challenge_bits":18,"challenge_expires_at":"2026-03-14T07:31:58.512Z","challenge_id":"019ceb40-7ef0-7dd0-8bd7-7e0222ced882","challenge_prefix":"HlGA84Ol3PMa4jnlmZ-Oaw","state":"challenge"}'
+  - name: solved
+    part: request
+    value:
+      email: anna@example.com
+      challenge_id: 019ceb40-7ef0-7dd0-8bd7-7e0222ced882
+      challenge_nonce: "291604"
+    json: '{"challenge_id":"019ceb40-7ef0-7dd0-8bd7-7e0222ced882","challenge_nonce":"291604","email":"anna@example.com"}'
+  - name: rate_limited
+    part: problem
+    value:
+      code: rate_limited
+      category: rate_limit
+      message: Слишком много попыток входа. Повторите позже.
+      fields: []
+      retry_after: 540
+      request_id: 019ceb4a-d97c-727a-8321-7f7e095d8fbb
+    json: '{"category":"rate_limit","code":"rate_limited","fields":[],"message":"Слишком много попыток входа. Повторите позже.","request_id":"019ceb4a-d97c-727a-8321-7f7e095d8fbb","retry_after":540}'

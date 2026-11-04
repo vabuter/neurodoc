@@ -1,0 +1,33 @@
+<svg class="bpmn" viewBox="0 0 1200 654" role="img" aria-label="BPMN: Доставка напоминания">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- К [напоминаниям](f2955668-8e4f-4c99-888f-3e9deeb44f62); чипы: [care.task_due](../contract/care/task-due.yaml), [care.tasks](../contract/care/tasks.yaml), [account.push_token](../contract/account/push-token.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1180" height="634"/><path d="M10 130H1190M10 330H1190M10 420H1190M10 540H1190M110 10V644"/></g>
+<g class="lane-title"><text x="60" y="60">Планировщик<tspan x="60" dy="14">reminder-</tspan><tspan x="60" dy="14">scheduler</tspan></text><text x="60" y="234">Сервер</text><text x="60" y="379">Клиент</text><text x="60" y="477">Пуш-сервис<tspan x="60" dy="14">(FCM/APNs)</tspan></text><text x="60" y="596">Почта</text></g>
+<g class="flow"><path d="M738 26H730V60H738" style="marker-end:none"/><path d="M165 70H198"/><path d="M372 70H395"/><path d="M415 50V36H640V50"/><path d="M415 90V106H640V90"/><path d="M660 70H690V160"/><path d="M710 180H765"/><path d="M795 180H850V237"/><path d="M690 200V260H798"/><path d="M902 260H930"/><path d="M970 260H999"/><path d="M1050 270V358"/><path d="M986 375H936"/><path d="M950 280V304H720V440"/><path d="M740 460H757"/><path d="M720 480V500"/><path d="M863 460H900"/><path d="M920 440V391"/><path d="M940 460H1032"/><path d="M1128 460H1144"/><path d="M920 480V499"/><path d="M905 514H810V477"/><path d="M190 260H270V575"/><path d="M336 592H390"/><path d="M430 592H494"/><path d="M410 572V283"/><path d="M486 260H524"/><path d="M1080 483V504" style="marker-end:none" stroke-dasharray="2 3"/></g>
+<g class="task"><rect x="757" y="443" width="106" height="34" rx="7"/><rect x="204" y="575" width="132" height="34" rx="7"/></g>
+<g class="sys"><rect x="198" y="47" width="174" height="46" rx="7"/><rect x="798" y="237" width="104" height="46" rx="7"/><rect x="334" y="237" width="153" height="46" rx="7"/><rect x="1032" y="437" width="96" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="999" y="250" width="102" height="20" rx="4"/><rect x="986" y="358" width="129" height="34" rx="4"/><rect x="1012" y="504" width="135" height="20" rx="4"/></g>
+<g class="gw"><path d="M415 50l20 20-20 20-20-20zM640 50l20 20-20 20-20-20zM690 160l20 20-20 20-20-20zM950 240l20 20-20 20-20-20zM920 440l20 20-20 20-20-20zM410 572l20 20-20 20-20-20zM720 440l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="150" cy="70" r="15"/><circle cx="150" cy="70" r="11"/><circle cx="780" cy="180" r="15"/><circle cx="780" cy="180" r="12"/><circle cx="175" cy="260" r="15"/><circle cx="175" cy="260" r="11"/><circle cx="920" cy="514" r="15"/><circle cx="920" cy="514" r="12"/></g>
+<g class="ev-end"><circle cx="540" cy="260" r="15"/><circle cx="920" cy="375" r="15"/><circle cx="1160" cy="460" r="15"/><circle cx="510" cy="592" r="15"/><circle cx="720" cy="515" r="15"/></g>
+<g class="gwsym"><path d="M150 64v6l4 3M409 64l12 12m0-12l-12 12M634 64l12 12m0-12l-12 12M684 174l12 12m0-12l-12 12M780 174v6l4 3M944 254l12 12m0-12l-12 12M175 254v6l4 3M914 454l12 12m0-12l-12 12M920 508v6l4 3M404 586l12 12m0-12l-12 12M714 454l12 12m0-12l-12 12"/></g>
+<g class="nt"><text x="150" y="48">раз в минуту</text><text x="285" y="67">Дома, где по поясу<tspan x="285" dy="14">началось утреннее окно</tspan></text><text x="780" y="158">до конца тихих часов</text><text x="850" y="257">Сгруппировать<tspan x="850" dy="14">задачи дома</tspan></text><text x="950" y="219">Клиент на связи<tspan x="950" dy="14">последние 2 мин?</tspan></text><text x="175" y="289">07:30 по поясу дома</text><text x="410" y="257">Выключить дайджест,<tspan x="410" dy="14">баннер в приложении</tspan></text><text x="810" y="464">Мобильный пуш</text><text x="1080" y="457">Удалить<tspan x="1080" dy="14">токен</tspan></text><text x="1160" y="412">Только<tspan x="1160" dy="14">дайджест</tspan></text><text x="270" y="596">Дайджест письмом</text><text x="410" y="626">Третий отказ подряд?</text><g text-anchor="start"><text x="442" y="74">Отпуск активен?</text><text x="563" y="257">Дайджест<tspan x="563" dy="14">выключен</tspan></text><text x="533" y="596">Письмо ушло</text></g><g text-anchor="end"><text x="663" y="177">Тихие часы<tspan x="663" dy="14">получателя?</tspan></text><text x="897" y="372">Напоминание<tspan x="897" dy="14">доставлено</tspan></text><text x="904" y="444">Ответ?</text><text x="696" y="464">Есть push-токен?</text><text x="699" y="519">Только дайджест</text></g></g>
+<g class="chip-label"><text x="1050" y="264">care.task_due</text><text x="1050" y="372">care.tasks</text><text x="1080" y="518">account.push_token</text></g>
+<g class="lbl"><text x="736" y="40">Летнее время: несуществующее время —<tspan x="736" dy="13">вперёд, повторяющееся — первое</tspan></text><text x="440" y="30">да: только помощник</text><text x="440" y="100">нет: все участники дома</text><text x="716" y="174">да</text><text x="696" y="214">нет</text><text x="976" y="254">да</text><text x="956" y="294">нет</text><text x="742" y="452">да</text><text x="726" y="496">нет</text><text x="926" y="412">ok</text><text x="944" y="475">токен<tspan x="944" dy="13">недействителен</tspan></text><text x="826" y="509">через 5 мин</text><text x="436" y="586">нет</text><text x="416" y="565">да</text><text text-anchor="middle" x="1050" y="386">обновить «Сегодня»</text><g text-anchor="end"><text x="914" y="494">сетевая ошибка</text><text x="264" y="306">если digest_enabled;<tspan x="264" dy="13">в отпуске — помощнику</tspan></text></g></g>
+</svg>

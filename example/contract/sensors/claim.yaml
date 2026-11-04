@@ -1,0 +1,81 @@
+# sensors.claim — привязать датчик Fikus Sense к дому кодом с коробки (текстом и в QR). Код — доказательство, что
+# датчик в руках: он напечатан только на коробке, сервер хранит его SHA-256. Привязка идёт до настройки Wi-Fi —
+# первое показание уже знает свой дом. Сценарий — «Привязка датчика: QR-код, Wi-Fi и первое показание».
+
+operation: sensors.claim
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/houses/{house_id}/sensors
+status: draft
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Привязать датчик к дому кодом с коробки."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути; привязывают owner и member
+  code:
+    type: string
+    required: true
+    desc: Код привязки, 8 символов Crockford Base32; регистр, дефисы и пробелы не важны, O = 0, I и L = 1
+  name:
+    type: string
+    required: true
+    desc: Имя датчика, 1–40 символов — «Датчик у калатеи»
+  plant_id:
+    type: id
+    desc: Растение этого дома, в горшок которого ставят датчик; у растения не должно быть другого датчика
+
+# Повтор привязки того же датчика к тому же дому возвращает тот же Sensor: нажатие после обрыва связи не даёт отказа.
+response: Sensor     # state offline: на связь датчик ещё не выходил; calibrated false, точки заводские
+
+errors:
+  - code: claim_code_invalid
+    category: not_found
+    desc: Кода нет — поле подсвечено, можно ввести снова
+  - code: sensor_already_claimed
+    category: conflict
+    desc: >-
+      Датчик привязан к другому дому — «обратитесь к прежнему владельцу или в поддержку»: отвязка пока только
+      через поддержку
+  - code: invalid_fields
+    category: validation
+    fields:
+      name: [required, too_long]
+      plant_id: [not_allowed]           # растение другого дома, архивное или уже с датчиком
+  - code: rate_limited
+    category: rate_limit
+    desc: Больше 10 попыток в час на аккаунт — при таком лимите 40 бит кода не перебрать
+  - code: forbidden
+    category: forbidden
+    desc: Роль helper — датчик двигает план растений, а помощник ничего не меняет
+
+# 18 декабря Анна привязывает новый датчик к калатее; за полминуты до этого он уже успел отправить пачку (unclaimed).
+golden:
+  - name: request
+    part: request
+    value:
+      code: M3K9TZ2P
+      name: Датчик у калатеи
+      plant_id: 01a1b588-86b8-7606-ab6b-ce77d77d6a4b
+    json: '{"code":"M3K9TZ2P","name":"Датчик у калатеи","plant_id":"01a1b588-86b8-7606-ab6b-ce77d77d6a4b"}'
+  - name: ok
+    part: response
+    value:
+      id: 01a15889-fa80-7cd8-99ac-4ae23868e451
+      serial: FS1-7MZQ4B
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_id: 01a1b588-86b8-7606-ab6b-ce77d77d6a4b
+      name: Датчик у калатеи
+      state: offline
+      firmware: "1.4.2"
+      calibrated: false
+      raw_dry: 2985
+      raw_wet: 1110
+      claimed_at: "2026-12-18T15:31:09.664Z"
+    json: '{"calibrated":false,"claimed_at":"2026-12-18T15:31:09.664Z","firmware":"1.4.2","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a15889-fa80-7cd8-99ac-4ae23868e451","name":"Датчик у калатеи","plant_id":"01a1b588-86b8-7606-ab6b-ce77d77d6a4b","raw_dry":2985,"raw_wet":1110,"serial":"FS1-7MZQ4B","state":"offline"}'

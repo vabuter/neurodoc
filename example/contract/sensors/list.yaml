@@ -1,0 +1,71 @@
+# sensors.list — датчики дома с последними показаниями: экран «Датчики» и плашки на карточках растений. Курсора
+# нет: датчиков в доме единицы. Участники видят все датчики дома — датчик принадлежит дому, а не человеку.
+# Draft вместе с датчиками — до пилота на 20 датчиках.
+
+operation: sensors.list
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/houses/{house_id}/sensors
+status: draft
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Датчики дома с последними показаниями."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути; owner, member и helper видят одно и то же
+
+response:
+  items:
+    type: list<Sensor>
+    required: true
+    desc: >-
+      Датчики по времени привязки, с last_reading. Пусто — экран «Подключите Fikus Sense» с кнопкой привязки;
+      у helper кнопки нет
+
+errors:
+  - code: forbidden
+    category: forbidden
+    desc: Пользователь не состоит в доме
+
+# 15 декабря, 12:40 по Москве: датчик у Бенджи на связи, датчик у монстеры молчит с 07:30 — sensor-watch в 10:35
+# перевёл его в offline. Заряд 12 % и прошивка 1.4.1 — его же админка показывает в здоровье парка.
+golden:
+  - name: online_and_offline
+    part: response
+    value:
+      items:
+        - id: 01a15889-fa80-7c1d-b5ef-024d3b1f8bed
+          serial: FS1-4Q7D2M
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+          name: Датчик у Бенджи
+          state: online
+          firmware: "1.4.2"
+          battery_pct: 58
+          last_seen_at: "2026-12-15T09:30:03.412Z"
+          last_reading: {at: "2026-12-15T09:30:01.000Z", moisture_raw: 2210, moisture_pct: 41, temperature_dc: 215, light_lux: 5400, battery_mv: 3240}
+          calibrated: true
+          raw_dry: 3010
+          raw_wet: 1060
+          claimed_at: "2026-11-02T16:48:27.903Z"
+        - id: 01a19d36-1b92-7623-bbca-eb6d4002ae45
+          serial: FS1-Y8J5TA
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+          name: Датчик у монстеры
+          state: offline
+          firmware: "1.4.1"
+          battery_pct: 12
+          last_seen_at: "2026-12-15T04:30:02.871Z"
+          last_reading: {at: "2026-12-15T04:30:01.000Z", moisture_raw: 2480, moisture_pct: 29, temperature_dc: 198, light_lux: 0, battery_mv: 3020}
+          calibrated: true
+          raw_dry: 3050
+          raw_wet: 1080
+          claimed_at: "2026-11-02T17:02:11.346Z"
+    json: '{"items":[{"battery_pct":58,"calibrated":true,"claimed_at":"2026-11-02T16:48:27.903Z","firmware":"1.4.2","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a15889-fa80-7c1d-b5ef-024d3b1f8bed","last_reading":{"at":"2026-12-15T09:30:01.000Z","battery_mv":3240,"light_lux":5400,"moisture_pct":41,"moisture_raw":2210,"temperature_dc":215},"last_seen_at":"2026-12-15T09:30:03.412Z","name":"Датчик у Бенджи","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","raw_dry":3010,"raw_wet":1060,"serial":"FS1-4Q7D2M","state":"online"},{"battery_pct":12,"calibrated":true,"claimed_at":"2026-11-02T17:02:11.346Z","firmware":"1.4.1","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a19d36-1b92-7623-bbca-eb6d4002ae45","last_reading":{"at":"2026-12-15T04:30:01.000Z","battery_mv":3020,"light_lux":0,"moisture_pct":29,"moisture_raw":2480,"temperature_dc":198},"last_seen_at":"2026-12-15T04:30:02.871Z","name":"Датчик у монстеры","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","raw_dry":3050,"raw_wet":1080,"serial":"FS1-Y8J5TA","state":"offline"}]}'

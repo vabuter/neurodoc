@@ -1,0 +1,33 @@
+<svg class="bpmn" viewBox="0 0 1080 572" role="img" aria-label="BPMN: Подключение второго фактора и коды восстановления">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема из [сценариев авторизации](62574d4b-6127-47ee-b4bb-decfb396b370); правила и числа — в описании [второго фактора](43565f30-1feb-4e70-a592-5a3cfa9e9eec). Операции на чипах: [auth.totp_setup](../contract/auth/totp-setup.yaml), [auth.totp_enable](../contract/auth/totp-enable.yaml), [auth.totp_disable](../contract/auth/totp-disable.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1060" height="420"/><rect x="10" y="442" width="1060" height="120"/><path d="M10 130H1070M10 270H1070M118 10V430M118 442V562"/></g>
+<g class="lane-title"><text x="64" y="74">Пользователь</text><text x="64" y="204">Клиент</text><text x="64" y="354">Сервер</text><text x="64" y="506">Отключение</text></g>
+<g class="flow"><path d="M187 70H235"/><path d="M345 70H400V260"/><path d="M400 280V305"/><path d="M420 325H520V223"/><path d="M380 325H310V93"/><path d="M400 345V370"/><path d="M520 177V93"/><path d="M615 70H720V260"/><path d="M720 280V325"/><path d="M740 345H840V223"/><path d="M700 345H600V93"/><path d="M720 365V414H205V84H235"/><path d="M840 177V70H920"/><path d="M960 70H1005"/><path d="M940 90V200H908"/><path d="M175 500H217"/><path d="M327 500H354"/><path d="M482 500H528"/><path d="M568 500H635"/><path d="M548 520V549H295V523"/><path d="M675 500H745"/><path d="M655 520V540H710"/></g>
+<g class="task"><rect x="235" y="47" width="110" height="46" rx="7"/><rect x="425" y="47" width="190" height="46" rx="7"/><rect x="458" y="177" width="124" height="46" rx="7"/><rect x="772" y="177" width="136" height="46" rx="7"/><rect x="217" y="477" width="110" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="342.5" y="260" width="115" height="20" rx="4"/><rect x="659" y="260" width="122" height="20" rx="4"/><rect x="354" y="490" width="128" height="20" rx="4"/></g>
+<g class="gw"><path d="M940 50l20 20-20 20-20-20zM400 305l20 20-20 20-20-20zM720 325l20 20-20 20-20-20zM548 480l20 20-20 20-20-20zM655 480l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="172" cy="70" r="15"/><circle cx="160" cy="500" r="15"/></g>
+<g class="ev-end"><circle cx="1020" cy="70" r="15"/><circle cx="400" cy="385" r="15"/><circle cx="725" cy="540" r="15"/></g>
+<g class="ev-err"><circle cx="760" cy="500" r="15"/></g>
+<g class="gwsym"><path d="M934 64l12 12m0-12l-12 12M394 319l12 12m0-12l-12 12M714 339l12 12m0-12l-12 12M542 494l12 12m0-12l-12 12M649 494l12 12m0-12l-12 12M764 492l-7 9h6l-7 8"/></g>
+<g class="nt"><text x="172" y="34">Включить<tspan x="172" dy="14">второй фактор</tspan></text><text x="290" y="74">Ввести пароль</text><text x="520" y="67">Добавить в приложение-<tspan x="520" dy="15">аутентификатор, ввести код</tspan></text><text x="940" y="28">сохранил коды?<tspan x="940" dy="14">(обязательный флажок)</tspan></text><text x="1020" y="99">второй фактор<tspan x="1020" dy="14">включён</tspan></text><text x="520" y="197">Показать QR-код<tspan x="520" dy="15">и секрет</tspan></text><text x="840" y="197">Показать 10 кодов<tspan x="840" dy="15">восстановления</tspan></text><text x="160" y="529">Выключить</text><text x="272" y="497">Ввести пароль<tspan x="272" dy="15">и код</tspan></text><text x="548" y="458">пароль и код<tspan x="548" dy="14">верны?</tspan></text><text x="655" y="472">роль admin?</text><g text-anchor="start"><text x="412" y="306">ответ?</text><text x="421" y="389">уже включён</text><text x="732" y="326">ответ?</text><text x="781" y="497">admin_totp_required:<tspan x="781" dy="14">админу второй фактор обязателен</tspan></text><text x="746" y="544">второй фактор выключен</text></g></g>
+<g class="chip-label"><text x="400" y="274">auth.totp_setup</text><text x="720" y="274">auth.totp_enable</text><text x="418" y="504">auth.totp_disable</text></g>
+<g class="lbl"><text x="430" y="341">ok</text><text x="406" y="362">totp_already_enabled</text><text x="750" y="361">ok</text><text x="607" y="186">invalid_code:<tspan x="607" dy="13">проверьте время</tspan><tspan x="607" dy="13">на телефоне</tspan></text><text x="967" y="62">да</text><text x="946" y="150">нет</text><text x="576" y="493">да</text><text x="683" y="493">да</text><text x="661" y="534">нет</text><text text-anchor="end" x="377" y="341">invalid_credentials</text><g text-anchor="middle"><text x="560" y="408">setup_expired (заготовка старше 10 мин) — заново</text><text x="422" y="544">нет: invalid_credentials или invalid_code</text></g></g>
+</svg>

@@ -1,0 +1,62 @@
+# admin.logs — хвост журнала /var/log/fikus/api.log с фильтрами: главный случай — найти запрос по request_id из
+# жалобы пользователя. Пароли, токены и коды вырезаны ещё при записи лога, поэтому хвост их не показывает никогда.
+# Общие отказы admin.* — в admin.overview. Описание — «Админка: хвост логов и режим обслуживания».
+
+operation: admin.logs
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/admin/logs
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Хвост журнала fikus-api с фильтрами."
+
+request:
+  since:
+    type: time
+    desc: Строки не раньше этого момента; нет — последние limit строк
+  level:
+    type: string
+    enum: [debug, info, warn, error]
+    desc: Этот уровень и выше; debug пишется только при трассировке пользователя
+  request_id:
+    type: string
+    desc: Все строки одного запроса
+  limit:
+    type: int
+    desc: Сколько строк, по умолчанию 100, максимум 500
+
+response:
+  lines:
+    type: list<map<string,string>>
+    required: true
+    desc: >-
+      Строки журнала, старые сверху; у каждой есть at, level, msg, request_id и op. Прочие поля строки (status,
+      duration_ms, account_id) тоже приходят строками: набор полей у строк разный, а тип один
+  truncated:
+    type: bool
+    required: true
+    desc: true — подходящих строк больше limit, показаны последние
+
+golden:
+  - name: by_request_id
+    part: response
+    value:
+      lines:
+        - at: "2026-12-15T09:44:02.307Z"
+          level: warn
+          msg: "invalid time zone: Europe/Moskow"
+          request_id: 01a27916-6c01-76fe-856e-f60dc70ab83d
+          op: account.update
+        - at: "2026-12-15T09:44:02.309Z"
+          level: info
+          msg: request
+          request_id: 01a27916-6c01-76fe-856e-f60dc70ab83d
+          op: account.update
+          status: "422"
+          duration_ms: "2"
+      truncated: false
+    json: '{"lines":[{"at":"2026-12-15T09:44:02.307Z","level":"warn","msg":"invalid time zone: Europe/Moskow","op":"account.update","request_id":"01a27916-6c01-76fe-856e-f60dc70ab83d"},{"at":"2026-12-15T09:44:02.309Z","duration_ms":"2","level":"info","msg":"request","op":"account.update","request_id":"01a27916-6c01-76fe-856e-f60dc70ab83d","status":"422"}],"truncated":false}'

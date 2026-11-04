@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="NeurodocEditor.Dialogs.SettingsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Настройки"
+    CloseButtonText="Готово"
+    DefaultButton="Close">
+
+    <StackPanel Spacing="18" MinWidth="360">
+        <RadioButtons x:Name="ThemeRadios" Header="Тема оформления" SelectionChanged="OnThemeChanged">
+            <RadioButton Content="Система" />
+            <RadioButton Content="Светлая" />
+            <RadioButton Content="Тёмная" />
+        </RadioButtons>
+
+        <ComboBox x:Name="FontCombo" Header="Шрифт" Width="300" SelectionChanged="OnFontChanged" />
+
+        <NumberBox x:Name="SizeBox" Header="Размер шрифта" Width="300" HorizontalAlignment="Left"
+                   Minimum="8" Maximum="96" SmallChange="1" LargeChange="4"
+                   SpinButtonPlacementMode="Inline" ValueChanged="OnSizeChanged" />
+
+        <NumberBox x:Name="SpacingBox" Header="Междустрочный интервал" Width="300" HorizontalAlignment="Left"
+                   Minimum="0.8" Maximum="3" SmallChange="0.1" LargeChange="0.5"
+                   SpinButtonPlacementMode="Inline" ValueChanged="OnSpacingChanged" />
+
+        <TextBlock Text="Изменения применяются сразу и сохраняются в файле настроек (YAML)."
+                   FontSize="12" Foreground="{ThemeResource DimTextBrush}" TextWrapping="Wrap" />
+    </StackPanel>
+</ContentDialog>

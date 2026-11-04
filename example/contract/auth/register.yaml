@@ -1,0 +1,95 @@
+# auth.register — регистрация в рамках flow из auth.start («Я здесь впервые»). Ответ всегда state check_email:
+# свободный адрес получает письмо confirm_email со ссылкой на 24 ч, занятый — register_exists («если это вы —
+# войдите или сбросьте пароль»); хэш считается в обоих случаях, письмо уходит после ответа — время одинаково.
+# Сценарий — «Регистрация и подтверждение адреса».
+
+operation: auth.register
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/register
+status: live
+since: v1
+clients: [app, android, server]
+auth: none
+summary: "Регистрация в рамках flow; ответ одинаков для свободного и занятого адреса."
+
+request:
+  flow_id:
+    type: id
+    required: true
+    desc: Поток входа из auth.start; адрес берётся из него
+  password:
+    type: string
+    required: true
+    desc: 10–128 символов после NFC, без правил состава; не из вшитого списка 100 000 частых утёкших паролей
+  display_name:
+    type: string
+    required: true
+    desc: Как обращаться в приложении и письмах, 1–40 символов
+  locale:
+    type: string
+    enum: [ru, en]
+    desc: Язык интерфейса и писем; нет — по Accept-Language, а при незнакомом языке en
+  time_zone:
+    type: string
+    required: true
+    desc: Пояс IANA — клиент подставляет пояс браузера или телефона; с ним создаётся дом «Мой дом»
+  accept_terms:
+    type: bool
+    required: true
+    desc: Согласие с условиями; обязано быть true
+
+response:
+  state:
+    type: string
+    required: true
+    enum: [check_email]
+    desc: Всегда check_email — и для свободного, и для занятого адреса
+
+# Свободный адрес: неподтверждённый аккаунт, дом «Мой дом» с поясом time_zone, где новый аккаунт — owner, письмо
+# confirm_email; не подтверждённый за 7 дней аккаунт удаляет unconfirmed-cleanup. Занятый: аккаунт не меняется.
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      password: [required, too_short, too_long, common_password]
+      display_name: [required, too_long]
+      time_zone: [invalid_format]
+      accept_terms: [required]
+  - code: flow_expired
+    category: auth
+    desc: Flow не найден или старше 30 мин — начать с auth.start
+  - code: rate_limited
+    category: rate_limit
+    desc: Письмо на этот адрес уже уходило меньше 5 мин назад; лимит одинаков для свободного и занятого адреса и потому ничего не раскрывает
+
+golden:
+  - name: request
+    part: request
+    value:
+      flow_id: 01a29438-ad04-72c5-9d36-82d5eeca3c6d
+      password: демо-пароль-веры
+      display_name: Вера
+      locale: ru
+      time_zone: Europe/Moscow
+      accept_terms: true
+    json: '{"accept_terms":true,"display_name":"Вера","flow_id":"01a29438-ad04-72c5-9d36-82d5eeca3c6d","locale":"ru","password":"демо-пароль-веры","time_zone":"Europe/Moscow"}'
+  - name: check_email
+    part: response
+    value:
+      state: check_email
+    json: '{"state":"check_email"}'
+  - name: common_password
+    part: problem
+    value:
+      code: invalid_fields
+      category: validation
+      message: Проверьте поля формы
+      fields:
+        - field: password
+          code: common_password
+          message: Этот пароль слишком распространён — придумайте другой
+      request_id: 01a29439-6186-7e87-ba46-9c8d2e8a67e1
+    json: '{"category":"validation","code":"invalid_fields","fields":[{"code":"common_password","field":"password","message":"Этот пароль слишком распространён — придумайте другой"}],"message":"Проверьте поля формы","request_id":"01a29439-6186-7e87-ba46-9c8d2e8a67e1"}'

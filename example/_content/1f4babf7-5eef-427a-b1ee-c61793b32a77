@@ -1,0 +1,34 @@
+<svg class="bpmn" viewBox="0 0 1180 620" role="img" aria-label="BPMN: Удаление аккаунта: отсрочка, отмена входом и очистка">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема из [сценариев авторизации](62574d4b-6127-47ee-b4bb-decfb396b370); правила и сроки — в описании [удаления аккаунта с отсрочкой](a31ef7ae-068e-4f49-bb58-93d0c047b87c). Операции на чипах: [account.delete](../contract/account/delete.yaml), [auth.login](../contract/auth/login.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1160" height="600"/><path d="M10 110H1170M10 210H1170M10 330H1170M10 410H1170M118 10V610"/></g>
+<g class="lane-title"><text x="64" y="64">Пользователь</text><text x="64" y="164">Клиент</text><text x="64" y="274">Сервер</text><text x="64" y="374">Почта</text><text x="64" y="506.5">Фоновые<tspan x="64" dy="15">задачи</tspan></text></g>
+<g class="task"><rect x="730" y="420" width="285" height="180" rx="10"/></g>
+<g class="flow"><path d="M195 60H240"/><path d="M360 60H400V200"/><path d="M400 220V250"/><path d="M380 270H320V83"/><path d="M420 270H460"/><path d="M545 293V355"/><path d="M630 270H670"/><path d="M690 250V175"/><path d="M705 160H800V200"/><path d="M800 220V247"/><path d="M875 270H920"/><path d="M800 293V355"/><path d="M690 290V455"/><path d="M705 470H730"/><path d="M825 505H865"/><path d="M805 525V558H870"/><path d="M1015 470H1038"/><path d="M1100 493V545"/></g>
+<g class="task"><rect x="240" y="37" width="120" height="46" rx="7"/></g>
+<g class="sys"><rect x="460" y="247" width="170" height="46" rx="7"/><rect x="725" y="247" width="150" height="46" rx="7"/><rect x="865" y="484" width="140" height="42" rx="7"/><rect x="870" y="537" width="130" height="42" rx="7"/><rect x="1038" y="447" width="124" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="346" y="200" width="108" height="20" rx="4"/><rect x="759" y="200" width="82" height="20" rx="4"/></g>
+<g class="gw"><path d="M400 250l20 20-20 20-20-20zM690 250l20 20-20 20-20-20zM805 485l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="180" cy="60" r="15"/><circle cx="690" cy="270" r="10"/><circle cx="690" cy="270" r="7.5"/><path d="M690 265.5l4.3 3.1-1.6 5h-5.4l-1.6-5z"/><circle cx="690" cy="160" r="15"/><circle cx="690" cy="160" r="12"/><circle cx="690" cy="470" r="15"/><circle cx="690" cy="470" r="12"/><circle cx="690" cy="470" r="7.5"/></g>
+<g class="ev-end"><circle cx="545" cy="370" r="15"/><circle cx="935" cy="270" r="15"/><circle cx="800" cy="370" r="15"/><circle cx="1100" cy="560" r="15"/></g>
+<g class="gwsym"><path d="M394 264l12 12m0-12l-12 12M538.5 365.5h13v9h-13zl6.5 5 6.5-5M683.5 155.5h13v9h-13zl6.5 5 6.5-5M793.5 365.5h13v9h-13zl6.5 5 6.5-5M690 465v5h4M868.5 593a6 6 0 1 1 8 0m0 0v-4.5m0 4.5h-4.5M799 499l12 12m0-12l-12 12"/></g>
+<g class="nt"><text x="180" y="89">«Удалить аккаунт»</text><text x="300" y="57">Ввести пароль<tspan x="300" dy="15">и код TOTP</tspan></text><text x="400" y="305">данные верны?</text><text x="545" y="267">deletion_at = +14 дней,<tspan x="545" dy="15">отозвать все сессии</tspan></text><text x="800" y="267">Удаление отменено:<tspan x="800" dy="15">deletion_cancelled</tspan></text><text x="935" y="501">Передать владение<tspan x="935" dy="15">(ранний joined_at)</tspan></text><text x="935" y="554">Удалить дом,<tspan x="935" dy="15">растения и фото</tspan></text><text x="805" y="463">есть участники,<tspan x="805" dy="14">кроме помощников?</tspan></text><text x="1100" y="467">Обезличить записи<tspan x="1100" dy="15">в чужих домах</tspan></text><g text-anchor="start"><text x="566" y="367">письмо<tspan x="566" dy="14">deletion_scheduled</tspan></text><text x="956" y="274">аккаунт сохранён</text><text x="821" y="367">письмо<tspan x="821" dy="14">deletion_cancelled</tspan></text><text x="740" y="433">account-purge: каждый дом,<tspan x="740" dy="13">где он единственный owner</tspan></text></g><g text-anchor="end"><text x="676" y="232">что раньше?</text><text x="669" y="157">вход в течение<tspan x="669" dy="14">14 дней</tspan></text><text x="669" y="474">14 дней</text><text x="1079" y="557">аккаунт<tspan x="1079" dy="14">удалён</tspan></text></g></g>
+<g class="chip-label"><text x="400" y="214">account.delete</text><text x="800" y="214">auth.login</text></g>
+<g class="lbl"><text x="428" y="262">да</text><text x="836" y="498">да</text><text x="813" y="550">нет</text><text text-anchor="end" x="314" y="146">нет: invalid_credentials,<tspan x="314" dy="13">invalid_code,</tspan><tspan x="314" dy="13">totp_code_required</tspan></text></g>
+</svg>

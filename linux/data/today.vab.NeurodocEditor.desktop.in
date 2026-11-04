@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Neurodoc Editor
+Comment=Editor for neurodoc documentation catalogs
+Comment[ru]=Редактор каталогов документации в формате neurodoc
+Exec=@EXEC@
+Icon=today.vab.NeurodocEditor
+Terminal=false
+Categories=Office;TextEditor;Development;
+Keywords=neurodoc;documentation;markdown;
+StartupNotify=true
+StartupWMClass=today.vab.NeurodocEditor

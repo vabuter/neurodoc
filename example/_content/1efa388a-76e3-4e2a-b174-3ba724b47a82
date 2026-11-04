@@ -1,0 +1,41 @@
+# Операции API и DTO: админка
+
+Доменная часть [реестра операций API](46a3b885-d219-41b0-9e37-648a0f894800): одиннадцать операций admin.* с запросами, ответами и ошибками. Зачем админка, кто в неё входит и почему у неё нет своего сервера — в [концепции админ-панели](cc9c86eb-45a1-4915-aef7-2f3098832481).
+
+Три колонки реестра у всех операций домена одинаковые, поэтому в таблицу не вынесены: авторизация admin, клиенты admin и server, статус draft — до запуска админки.
+
+## Операции
+
+| Операция | Метод и путь | Что делает | Главное в запросе и ответе | Ошибки и побочные эффекты |
+|---|---|---|---|---|
+| [admin.overview](../contract/admin/overview.yaml) | GET /v1/admin/overview | Сводные цифры для главного экрана админки. | users_total, users_new_7d, houses_total, plants_total, sensors_online / offline / battery_low, tasks_done_7d, reminders_sent_24h, emails_bounced_24h, computed_at | admin_totp_required, admin_reauth_required (forbidden) — общие для всех admin.*; цифры пересчитывает admin-stats раз в 10 мин |
+| [admin.users](../contract/admin/users.yaml) | GET /v1/admin/users | Поиск пользователей по началу адреса или id. | q (от 3 символов или id целиком), status, cursor, limit 50 → items (AdminUser), next_cursor | validation — q короче 3 символов |
+| [admin.user_update](../contract/admin/user-update.yaml) | PATCH /v1/admin/users/{user_id} | Блокировка, разблокировка и трассировка пользователя. | blocked, blocked_reason, trace_minutes 0–240 (0 — выключить) → AdminUser | reason_required, cannot_block_self (validation); not_found; блокировка отзывает сессии — auth.session_revoked с reason blocked |
+| [admin.species_queue](../contract/admin/species-queue.yaml) | GET /v1/admin/species/suggestions | Очередь предложенных видов на модерацию. | status pending / approved / merged / rejected (по умолчанию pending), cursor, limit 50 → items (SpeciesSuggestion), next_cursor | validation — limit больше 200 |
+| [admin.species_decide](../contract/admin/species-decide.yaml) | POST /v1/admin/species/suggestions/{suggestion_id}/decision | Решение по предложенному виду: одобрить, объединить или отклонить. | decision approve / merge / reject; species (профиль ухода) при approve, target_species_id при merge, reason при reject → SpeciesSuggestion | already_decided, species_exists (conflict); validation; пересчёт планов растений, houses.changed со scope plants |
+| [admin.sensors](../contract/admin/sensors.yaml) | GET /v1/admin/sensors | Парк датчиков: проблемные датчики и версии прошивки. | state offline / battery_low / outdated, cursor, limit 50 → items (Sensor), next_cursor, firmware_versions (версия → число датчиков) | validation — limit больше 200 |
+| [admin.rollout](../contract/admin/rollout.yaml) | POST /v1/admin/firmware/rollouts | Раскатка прошивки датчиков волнами. | version (semver), percent 5 / 25 / 50 / 100, paused → started_at, devices_targeted, devices_updated, devices_rolled_back | version_unknown (not_found); percent_decrease (validation — волну можно только расширить или остановить); доля откатов больше 2 % — пауза сама |
+| [admin.build](../contract/admin/build.yaml) | GET /v1/admin/build | Что сейчас на проде: версия, коммит, схема БД, флаги. | version, commit, built_at, deployed_at, go_version, schema_version, schema_latest, uptime, flags | только общие |
+| [admin.flag_set](../contract/admin/flag-set.yaml) | PUT /v1/admin/flags/{key} | Включение или выключение флага функции. | enabled → key, enabled, changed_at, changed_by | flag_unknown (not_found) |
+| [admin.logs](../contract/admin/logs.yaml) | GET /v1/admin/logs | Хвост журнала fikus-api с фильтрами. | since, level, request_id, limit до 500 → lines (at, level, msg, request_id, op), truncated | только общие; секреты вырезаны ещё при записи лога |
+| [admin.maintenance](../contract/admin/maintenance.yaml) | PUT /v1/admin/maintenance | Режим обслуживания: выключен, баннер или полный. | mode off / banner / full, message_ru, message_en, until → mode, until, changed_at | validation — нет message_ru для banner или full; full создаёт /var/lib/fikus/maintenance.flag, off удаляет; событие system.maintenance всем клиентам |
+
+## DTO
+
+| DTO | Назначение | Где используется |
+|---|---|---|
+| [AdminUser](../contract/dto/AdminUser.yaml) | Пользователь глазами администратора: статус и счётчики без личного содержимого. | admin.users, admin.user_update |
+| [SpeciesSuggestion](../contract/dto/SpeciesSuggestion.yaml) | Предложение нового вида и решение модератора; DTO домена растений. | admin.species_queue, admin.species_decide; у пользователя — species.suggest |
+| [Sensor](../contract/dto/Sensor.yaml) | Датчик Fikus Sense: состояние, калибровка, последнее показание; DTO домена дома и датчиков. | admin.sensors; у пользователя — sensors.list |
+
+Своих DTO у админки одно: остальное она читает в тех же типах, что и клиенты пользователя, — второго описания датчика или предложения вида контракт не держит.
+
+## Общие правила
+
+Все операции admin.* требуют роль admin, включённый второй фактор и сессию не старше 12 часов. Проверяет это middleware до обработчика, нарушение — Problem категории forbidden (403):
+- admin_totp_required — второй фактор не включён: клиент ведёт на его подключение;
+- admin_reauth_required — сессия старше 12 часов: клиент выходит и просит войти заново, с паролем и кодом.
+
+В контракте эти коды перечислены один раз, у admin.overview, и в errors остальных операций не повторяются — как token_expired и session_revoked у всех операций с авторизацией.
+
+Каждая операция пишет строку в audit_log — и изменение, и чтение: админ видит чужие данные, и след должен оставаться от любого взгляда. Режим обслуживания full домен не закрывает: admin.* и auth.* работают, иначе режим нечем было бы снять. Списки admin.users, admin.species_queue и admin.sensors — курсорные, как всё, что растёт без предела: limit по умолчанию 50, максимум 200.

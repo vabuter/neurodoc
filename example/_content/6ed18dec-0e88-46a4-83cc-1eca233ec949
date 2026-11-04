@@ -1,0 +1,92 @@
+# Шаг 1. Базовая настройка Debian 12
+
+[Часть процедуры установки сервера с нуля](3a9c6939-c7b9-44b0-962b-33355477060e).
+
+Все команды — от root на свежем VPS. Итог шага: обновлённая система в UTC, пользователь fikus с каталогами, вход только по ключам, firewall и автоматические обновления безопасности.
+
+```bash
+apt update && apt full-upgrade -y
+timedatectl set-timezone Etc/UTC
+hostnamectl set-hostname fikus-prod-1
+```
+
+Сервер живёт в UTC: логи, расписание фоновых задач и метки в базе — в UTC, а часовые пояса бывают только у домов (почему так — [время и часовые пояса](6a6feae2-3299-471e-8541-4cdd7ac31ab1)). Пояс сервера, отличный от UTC, рано или поздно просочился бы в расчёт напоминаний.
+
+Пользователь сервиса и каталоги:
+
+```bash
+useradd --system --home /var/lib/fikus --shell /usr/sbin/nologin fikus
+install -d -m 0755 /opt/fikus/releases /opt/fikus/bin
+install -d -m 0750 -o root -g fikus /etc/fikus
+install -d -m 0711 -o fikus -g fikus /var/lib/fikus
+install -d -m 0750 -o fikus -g adm /var/log/fikus
+```
+
+- /etc/fikus — 0750 root:fikus: сервис читает конфиг, но не может его изменить;
+- /var/lib/fikus — 0711: nginx (www-data) должен видеть в нём maintenance.flag, но не список файлов; без бита x для «прочих» проверка флага молча отвечала бы «файла нет» и режим обслуживания не включался бы;
+- /var/log/fikus — группа adm, чтобы администраторы читали логи без sudo.
+
+SSH — только ключи и отдельный пользователь для администрирования; пароль ops нужен только для sudo и хранится в менеджере паролей:
+
+```bash
+adduser --gecos '' ops
+usermod -aG sudo,adm ops
+install -d -m 0700 -o ops -g ops /home/ops/.ssh
+install -m 0600 -o ops -g ops /root/.ssh/authorized_keys /home/ops/.ssh/authorized_keys
+cat > /etc/ssh/sshd_config.d/fikus.conf <<'EOF'
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+EOF
+sshd -t && systemctl reload ssh
+```
+
+Вход под ops проверяется в новом окне, не закрывая текущее: ошибка в конфиге SSH иначе запрёт сервер.
+
+Firewall — nftables, правила целиком. Семейство inet покрывает IPv4 и IPv6 одной таблицей; ICMPv6 пропускается обязательно — без него у IPv6 ломается поиск соседей.
+
+```bash
+cat > /etc/nftables.conf <<'EOF'
+#!/usr/sbin/nft -f
+flush ruleset
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        ct state established,related accept
+        ct state invalid drop
+        iif lo accept
+        meta l4proto { icmp, ipv6-icmp } accept
+        tcp dport { 22, 80, 443 } accept
+    }
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+}
+EOF
+systemctl enable --now nftables
+```
+
+Обновления и fail2ban:
+
+```bash
+apt install -y unattended-upgrades fail2ban python3-systemd
+dpkg-reconfigure -f noninteractive unattended-upgrades
+cat > /etc/fail2ban/jail.d/fikus.conf <<'EOF'
+[sshd]
+enabled = true
+backend = systemd
+banaction = nftables-multiport
+EOF
+systemctl restart fail2ban
+```
+
+- unattended-upgrades в Debian 12 по умолчанию ставит только обновления безопасности — так и оставляем; PostgreSQL из репозитория PGDG он не трогает, его обновляют руками в окно обслуживания;
+- в Debian 12 нет rsyslog и файла /var/log/auth.log, поэтому fail2ban читает журнал systemd (backend = systemd), иначе jail для sshd не запустится.
+
+Проверка — слушать порты должен только sshd на :22; nginx появится на шаге 3:
+
+```bash
+ss -tlnp
+```
+
+Дальше — [шаг 2: PostgreSQL 16, fikus-api и резервное копирование](b191c65b-445a-41c5-9b64-cb4f75498cd5).

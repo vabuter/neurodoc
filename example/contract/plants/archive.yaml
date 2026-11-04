@@ -1,0 +1,74 @@
+# plants.archive — растение не удаляют, а архивируют с причиной: журнал остаётся, история погибшего растения
+# лучше всего объясняет, что пошло не так. Открытые задачи закрываются, датчик снимается с растения и остаётся
+# в доме, в журнал ложится системная запись. Возврата из архива в MVP нет.
+
+operation: plants.archive
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/plants/{plant_id}/archive
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Архивирование растения вместо удаления: журнал остаётся."
+
+request:
+  plant_id:
+    type: id
+    required: true
+    desc: Растение — параметр пути
+  reason:
+    type: string
+    required: true
+    enum: [gifted, died, other]
+    desc: Подарил, погибло, другое — карточка архивного растения пишет её словами
+  note:
+    type: string
+    desc: Пояснение до 500 символов — ложится в журнал рядом с системной записью об архивации
+
+response: Plant      # archived_at и archive_reason заполнены, next_tasks пуст, sensor нет
+
+# Побочные эффекты одной транзакцией: открытые задачи удаляются (отметка по ним — task_closed), датчик теряет
+# plant_id, участникам уходит houses.changed со scope plants. Повтор — already_archived, а не второй архив.
+errors:
+  - code: already_archived
+    category: conflict
+    desc: Растение уже в архиве — клиент перезапрашивает карточку
+  - code: forbidden
+    category: forbidden
+    desc: Роль helper
+  - code: not_found
+    category: not_found
+    desc: Растения нет
+
+# 17 января, после отпуска: калатею, за которой ухаживала Вера, Анна дарит ей. Датчик с калатеи переехал ещё 20 декабря.
+golden:
+  - name: request
+    part: request
+    value:
+      reason: gifted
+      note: Подарили Вере — она ухаживала за калатеей, пока нас не было
+    json: '{"note":"Подарили Вере — она ухаживала за калатеей, пока нас не было","reason":"gifted"}'
+  - name: gifted
+    part: response
+    value:
+      id: 01a1b588-86b8-7606-ab6b-ce77d77d6a4b
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      species_id: 019fc710-e13a-78a1-8618-770d091de6b2
+      species_name: Калатея орбифолия
+      custom_species: false
+      nickname: Калатея
+      pot_material: ceramic
+      pot_diameter_cm: 16
+      pot_drainage: true
+      soil: peat
+      location_room: кухня
+      window: west
+      light: medium
+      next_tasks: []
+      created_at: "2026-11-07T10:23:05.912Z"
+      archived_at: "2027-01-17T11:30:12.640Z"
+      archive_reason: gifted
+    json: '{"archive_reason":"gifted","archived_at":"2027-01-17T11:30:12.640Z","created_at":"2026-11-07T10:23:05.912Z","custom_species":false,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a1b588-86b8-7606-ab6b-ce77d77d6a4b","light":"medium","location_room":"кухня","next_tasks":[],"nickname":"Калатея","pot_diameter_cm":16,"pot_drainage":true,"pot_material":"ceramic","soil":"peat","species_id":"019fc710-e13a-78a1-8618-770d091de6b2","species_name":"Калатея орбифолия","window":"west"}'

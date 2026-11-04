@@ -1,0 +1,63 @@
+# admin.users — поиск пользователей по началу адреса или по id целиком: адрес — то, что называет человек в письме
+# поддержки. Курсорная выдача по 50, растения и журналы не показываются — только счётчики. Отказы admin_totp_required
+# и admin_reauth_required — как у всех admin.* (описаны в admin.overview). Описание — «Админка: обзор и пользователи».
+
+operation: admin.users
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/admin/users
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Поиск пользователей по началу адреса или id."
+
+request:
+  q:
+    type: string
+    desc: Начало адреса от 3 символов или id целиком; нет — все пользователи, новые сверху
+  status:
+    type: string
+    enum: [active, unconfirmed, pending_deletion, blocked]
+    desc: Только пользователи с этим статусом
+  cursor:
+    type: string
+    desc: next_cursor из прошлой страницы
+  limit:
+    type: int
+    desc: Размер страницы, по умолчанию 50, максимум 200
+
+response:
+  items:
+    type: list<AdminUser>
+    required: true
+  next_cursor:
+    type: string
+    desc: Нет — страниц больше нет
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      q: [too_short]
+      limit: [out_of_range]
+
+golden:
+  - name: ok
+    part: response
+    value:
+      items:
+        - id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b
+          email: anna@example.com
+          display_name: Анна
+          status: active
+          role: user
+          created_at: "2026-09-20T17:05:11.279Z"
+          last_seen_at: "2026-12-15T09:38:51.207Z"
+          houses_count: 1
+          plants_count: 7
+          sensors_count: 2
+          totp_enabled: false
+    json: '{"items":[{"created_at":"2026-09-20T17:05:11.279Z","display_name":"Анна","email":"anna@example.com","houses_count":1,"id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","last_seen_at":"2026-12-15T09:38:51.207Z","plants_count":7,"role":"user","sensors_count":2,"status":"active","totp_enabled":false}]}'

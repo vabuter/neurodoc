@@ -1,0 +1,77 @@
+# AuthResult — результат шага входа: либо сессия с парой токенов, либо следующий шаг. Отдают auth.login,
+# auth.confirm_email, auth.reset_complete, auth.totp_verify и auth.refresh. Нужен второй фактор или не подтверждён
+# адрес — это исходы в поле state, а не отказы. Токены в golden — короткие выдуманные строки, не JWT.
+
+dto: AuthResult
+status: live
+since: v1
+clients: [app, admin, android, server]
+summary: "Результат шага входа: токены или следующий шаг."
+
+fields:
+  state:
+    type: string
+    required: true
+    enum: [signed_in, totp_required, email_unconfirmed]
+    desc: >-
+      signed_in — сессия создана, токены ниже; totp_required — пароль принят, нужен auth.totp_verify с flow_id;
+      email_unconfirmed — адрес не подтверждён, письмо confirm_email уходит снова, если прошлому больше 5 мин
+  flow_id:
+    type: id
+    desc: Только при totp_required — flow для auth.totp_verify, продлён на 5 мин
+  session_id:
+    type: id
+    desc: При signed_in — id новой сессии, он же sid в access-токене
+  access_token:
+    type: string
+    desc: >-
+      При signed_in — JWT EdDSA (Ed25519) на 15 мин: claims sub, sid, role, iat, exp, iss = api.fikus.example,
+      kid в заголовке. Клиент держит его только в памяти
+  access_expires_at:
+    type: time
+    desc: При signed_in — сейчас + 15 мин; клиент обновляет пару за 60 с до этого момента
+  refresh_token:
+    type: string
+    desc: >-
+      При signed_in — непрозрачные 32 случайных байта в base64url, в базе только SHA-256. Веб хранит его в IndexedDB,
+      Android — в DataStore, зашифрованном ключом Android Keystore
+  refresh_expires_at:
+    type: time
+    desc: При signed_in — сейчас + 30 дней; срок отсчитывается от последнего обновления
+  account:
+    type: Account
+    desc: При signed_in — профиль вошедшего; в ответе auth.refresh поля нет, профиль клиент уже знает
+  deletion_cancelled:
+    type: bool
+    desc: Только со значением true — этот вход отменил отложенное удаление аккаунта; клиент показывает баннер «Удаление отменено»
+
+golden:
+  - name: signed_in
+    value:
+      state: signed_in
+      session_id: 01a28a89-ea94-7c38-b260-38876e6b18a4
+      access_token: access-demo-boris-2
+      access_expires_at: "2026-12-18T19:18:44.020Z"
+      refresh_token: refresh-demo-boris-2
+      refresh_expires_at: "2027-01-17T19:03:44.020Z"
+      account:
+        id: 01a0caa1-e44f-77de-a33d-1d51c776de69
+        email: boris@example.com
+        email_confirmed: true
+        display_name: Борис
+        locale: en
+        time_zone: Europe/Moscow
+        units: metric
+        role: user
+        totp_enabled: true
+        digest_enabled: false
+        quiet_hours_start: "23:00"
+        quiet_hours_end: "07:00"
+        created_at: "2026-09-22T19:40:02.511Z"
+      deletion_cancelled: true
+    json: '{"access_expires_at":"2026-12-18T19:18:44.020Z","access_token":"access-demo-boris-2","account":{"created_at":"2026-09-22T19:40:02.511Z","digest_enabled":false,"display_name":"Борис","email":"boris@example.com","email_confirmed":true,"id":"01a0caa1-e44f-77de-a33d-1d51c776de69","locale":"en","quiet_hours_end":"07:00","quiet_hours_start":"23:00","role":"user","time_zone":"Europe/Moscow","totp_enabled":true,"units":"metric"},"deletion_cancelled":true,"refresh_expires_at":"2027-01-17T19:03:44.020Z","refresh_token":"refresh-demo-boris-2","session_id":"01a28a89-ea94-7c38-b260-38876e6b18a4","state":"signed_in"}'
+  - name: totp_required
+    value:
+      state: totp_required
+      flow_id: 01a28a89-8fc7-76f5-9094-9e6d26ece372
+    json: '{"flow_id":"01a28a89-8fc7-76f5-9094-9e6d26ece372","state":"totp_required"}'

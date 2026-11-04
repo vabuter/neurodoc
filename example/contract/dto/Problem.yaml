@@ -1,0 +1,56 @@
+# Problem — тело любого отказа Fikus, от операций fikus-api до ответов, которые nginx пишет сам (api_unavailable).
+# Формат свой, а не RFC 9457: клиентам нужны стабильные code и category, а не URI типа. Отказ отличается
+# от исхода: если клиенту есть что показать из ответа, это поле state в ответе, а не Problem.
+
+dto: Problem
+status: live
+since: v1
+clients: [app, admin, android, server, sense]
+summary: "Тело любого отказа."
+
+fields:
+  code:
+    type: string
+    required: true
+    desc: >-
+      Стабильный код в snake_case, по нему клиенты ветвятся; переименование — несовместимое изменение.
+      Общие коды, которых нет в errors отдельных операций: token_expired (auth — истёк access, единственный
+      повод для auth.refresh и повтора), session_revoked (auth — сессия отозвана, на экран входа),
+      maintenance (unavailable — режим обслуживания full), api_unavailable (unavailable — fikus-api
+      недоступен, отвечает сам nginx, retry_after 30), invalid_fields (validation — ошибки по полям в fields),
+      rate_limited (rate_limit — превышен лимит частоты)
+  category:
+    type: string
+    required: true
+    enum: [validation, auth, forbidden, not_found, conflict, rate_limit, unavailable, internal]
+    desc: >-
+      Задаёт HTTP-статус и общее поведение клиента: validation 422, auth 401, forbidden 403, not_found 404,
+      conflict 409, rate_limit 429, unavailable 503, internal 500
+  message:
+    type: string
+    required: true
+    desc: Текст для человека на языке аккаунта, до входа — по Accept-Language; клиент показывает, но не разбирает
+  fields:
+    type: list<FieldProblem>
+    required: true
+    desc: Ошибки отдельных полей запроса; у отказов не по полям — пустой список, а не отсутствие поля
+  retry_after:
+    type: duration
+    desc: Только у rate_limit и unavailable — через сколько секунд повторять; то же значение в заголовке Retry-After
+  request_id:
+    type: string
+    required: true
+    desc: >-
+      Тот же, что в заголовке X-Request-Id и в строке лога: по нему поддержка находит запрос. У fikus-api это
+      UUIDv7, у ответов nginx — его $request_id из 32 шестнадцатеричных цифр, поэтому тип string, а не id
+
+golden:
+  - name: rate_limited
+    value:
+      code: rate_limited
+      category: rate_limit
+      message: Слишком много неудачных попыток. Повторите через 15 минут.
+      fields: []
+      retry_after: 900
+      request_id: 01a2790f-1845-7098-817d-a2d0494640db
+    json: '{"category":"rate_limit","code":"rate_limited","fields":[],"message":"Слишком много неудачных попыток. Повторите через 15 минут.","request_id":"01a2790f-1845-7098-817d-a2d0494640db","retry_after":900}'

@@ -1,0 +1,106 @@
+# auth.login — пароль в рамках flow из auth.start. Несуществующий адрес и неверный пароль неотличимы ни по ответу,
+# ни по времени: argon2id считается и на фиктивном хэше. Нужен второй фактор или не подтверждён адрес — это исходы
+# в state, а не отказы. Сценарий — «Вход: identifier-first, вычислительная задача и второй фактор».
+
+operation: auth.login
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/login
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: none
+summary: "Вход по паролю в рамках flow."
+
+request:
+  flow_id:
+    type: id
+    required: true
+    desc: Поток входа из auth.start
+  password:
+    type: string
+    required: true
+    desc: Пароль как введён, сервер приводит его к NFC; в лог не попадает даже при трассировке
+  device_name:
+    type: string
+    desc: Имя устройства для списка сессий и письма о входе, до 64 символов; нет — «Без имени»
+  platform:
+    type: string
+    required: true
+    enum: [web, android, ios]
+    desc: Пара (platform, device_name), которой у аккаунта не было 90 дней, даёт письмо new_login
+
+response: AuthResult   # signed_in | totp_required (тот же flow_id, продлён на 5 мин) | email_unconfirmed
+
+# Побочные эффекты: email_unconfirmed — confirm_email уходит снова, если прошлое письмо старше 5 мин (операции
+# «отправить ещё раз» нет, ADR-012); вход при pending_deletion отменяет удаление (deletion_cancelled, письмо
+# deletion_cancelled); незнакомое устройство — письмо new_login; после signed_in flow удаляется.
+errors:
+  - code: invalid_credentials
+    category: auth
+    desc: Неверный пароль или адреса нет — ответ один; +1 к счётчику неудач адреса, даже несуществующего
+  - code: flow_expired
+    category: auth
+    desc: Flow не найден или старше 30 мин — клиент возвращается на экран адреса с заполненным полем
+  - code: account_blocked
+    category: forbidden
+    desc: Аккаунт заблокирован; этот отказ приходит только после верного пароля, иначе он выдал бы, что адрес зарегистрирован
+  - code: rate_limited
+    category: rate_limit
+    desc: 10 неудачных паролей на адрес за час — адрес закрыт на 15 мин, retry_after — до конца закрытия
+
+golden:
+  - name: request
+    part: request
+    value:
+      flow_id: 01a27911-8176-7426-8c0e-3112fa3cccc9
+      password: демо-пароль-анны
+      device_name: Firefox на Linux
+      platform: web
+    json: '{"device_name":"Firefox на Linux","flow_id":"01a27911-8176-7426-8c0e-3112fa3cccc9","password":"демо-пароль-анны","platform":"web"}'
+  - name: signed_in
+    part: response
+    value:
+      state: signed_in
+      session_id: 01a27911-acc7-72da-ac16-55fdcc096295
+      access_token: access-demo-anna-1
+      access_expires_at: "2026-12-15T09:53:51.207Z"
+      refresh_token: refresh-demo-anna-1
+      refresh_expires_at: "2027-01-14T09:38:51.207Z"
+      account:
+        id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b
+        email: anna@example.com
+        email_confirmed: true
+        display_name: Анна
+        locale: ru
+        time_zone: Europe/Moscow
+        units: metric
+        role: user
+        totp_enabled: false
+        digest_enabled: true
+        quiet_hours_start: "22:00"
+        quiet_hours_end: "08:00"
+        created_at: "2026-09-20T17:05:11.279Z"
+    json: '{"access_expires_at":"2026-12-15T09:53:51.207Z","access_token":"access-demo-anna-1","account":{"created_at":"2026-09-20T17:05:11.279Z","digest_enabled":true,"display_name":"Анна","email":"anna@example.com","email_confirmed":true,"id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","locale":"ru","quiet_hours_end":"08:00","quiet_hours_start":"22:00","role":"user","time_zone":"Europe/Moscow","totp_enabled":false,"units":"metric"},"refresh_expires_at":"2027-01-14T09:38:51.207Z","refresh_token":"refresh-demo-anna-1","session_id":"01a27911-acc7-72da-ac16-55fdcc096295","state":"signed_in"}'
+  - name: totp_required
+    part: response
+    value:
+      state: totp_required
+      flow_id: 01a27db1-a540-7567-a601-dbabb231402c
+    json: '{"flow_id":"01a27db1-a540-7567-a601-dbabb231402c","state":"totp_required"}'
+  - name: email_unconfirmed
+    part: response
+    value:
+      state: email_unconfirmed
+    json: '{"state":"email_unconfirmed"}'
+  - name: invalid_credentials
+    part: problem
+    value:
+      code: invalid_credentials
+      category: auth
+      message: Неверный адрес или пароль
+      fields: []
+      request_id: 01a27911-9ece-72cb-8538-12fd3e1d01b0
+    json: '{"category":"auth","code":"invalid_credentials","fields":[],"message":"Неверный адрес или пароль","request_id":"01a27911-9ece-72cb-8538-12fd3e1d01b0"}'

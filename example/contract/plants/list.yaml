@@ -1,0 +1,95 @@
+# plants.list — сетка «Мои растения»: все растения дома одним ответом. Курсора нет намеренно: в доме не больше
+# 200 растений, а сетке нужен весь список — для поиска по прозвищу и счётчика. Архив — тот же запрос с
+# archived = true (переключатель «Архив»). Экран — «Экраны: растения и уход».
+
+operation: plants.list
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/houses/{house_id}/plants
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Растения дома для сетки «Мои растения»."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути; owner, member и helper видят одно и то же
+  archived:
+    type: bool
+    desc: false (по умолчанию) — живые растения дома, true — только архив; смешанного списка нет
+
+response:
+  items:
+    type: list<Plant>
+    required: true
+    desc: >-
+      Растения по прозвищу (сравнение по правилам локали аккаунта); пустой список — экран «Добавить первое
+      растение». Форма Plant без plan и photos: cover_photo с подписанными на 1 ч ссылками, sensor с
+      last_reading для плашки влажности или «нет связи», next_tasks — одна ближайшая задача
+
+# not_found и forbidden различаются намеренно: id дома — UUIDv7 с 74 случайными битами, перебором его не найти,
+# а клиенту forbidden говорит «вас убрали из дома или доступ помощника кончился» — дом пора убрать из переключателя.
+errors:
+  - code: not_found
+    category: not_found
+    desc: Дома нет — удалён вместе с последним участником
+  - code: forbidden
+    category: forbidden
+    desc: Дом есть, но пользователь в нём больше не состоит
+
+# 20 октября: Бенджи и монстера, датчиков и фото ещё нет. Калатея появится 7 ноября.
+golden:
+  - name: two_plants
+    part: response
+    value:
+      items:
+        - id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          species_id: 019fc710-e100-7448-a192-990183571c83
+          species_name: Фикус Бенджамина
+          custom_species: false
+          nickname: Бенджи
+          pot_material: ceramic
+          pot_diameter_cm: 18
+          pot_drainage: true
+          soil: universal
+          location_room: гостиная
+          window: east
+          light: bright
+          next_tasks:
+            - id: 01a1489a-8b5d-7dcf-ac07-62288b5314d6
+              plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+              house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+              plant_name: Бенджи
+              kind: mist
+              due_at: "2026-10-21T05:00:00.000Z"
+              state: open
+          created_at: "2026-10-04T12:31:47.090Z"
+        - id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+          house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+          species_id: 019fc710-e129-7901-af4e-2da8680a499f
+          species_name: Монстера деликатесная
+          custom_species: false
+          nickname: Монстера в спальне
+          pot_material: plastic
+          pot_diameter_cm: 24
+          pot_drainage: true
+          soil: universal
+          location_room: спальня
+          window: north
+          light: medium
+          next_tasks:
+            - id: 01a12e9e-f48c-7116-9d7f-18ced3ef0229
+              plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+              house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+              plant_name: Монстера в спальне
+              kind: water
+              due_at: "2026-10-22T05:00:00.000Z"
+              state: open
+          created_at: "2026-10-04T12:36:20.118Z"
+    json: '{"items":[{"created_at":"2026-10-04T12:31:47.090Z","custom_species":false,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","light":"bright","location_room":"гостиная","next_tasks":[{"due_at":"2026-10-21T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a1489a-8b5d-7dcf-ac07-62288b5314d6","kind":"mist","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"}],"nickname":"Бенджи","pot_diameter_cm":18,"pot_drainage":true,"pot_material":"ceramic","soil":"universal","species_id":"019fc710-e100-7448-a192-990183571c83","species_name":"Фикус Бенджамина","window":"east"},{"created_at":"2026-10-04T12:36:20.118Z","custom_species":false,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","light":"medium","location_room":"спальня","next_tasks":[{"due_at":"2026-10-22T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a12e9e-f48c-7116-9d7f-18ced3ef0229","kind":"water","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","plant_name":"Монстера в спальне","state":"open"}],"nickname":"Монстера в спальне","pot_diameter_cm":24,"pot_drainage":true,"pot_material":"plastic","soil":"universal","species_id":"019fc710-e129-7901-af4e-2da8680a499f","species_name":"Монстера деликатесная","window":"north"}]}'

@@ -1,0 +1,70 @@
+# Авторизация — серверные алгоритмы
+
+Как fikus-api выполняет операции из [концепции авторизации](5431d295-2fe7-4960-bad9-30da619e7b7f): код — server/internal/auth, таблицы — accounts, sessions, refresh_tokens, auth_flows; поля и коды — в YAML.
+
+## Поток входа (flow)
+
+[auth.start](../contract/auth/start.yaml) открывает поток входа — запись auth_flows:
+1. Адрес обрезается, приводится к NFC и нижнему регистру; длиннее 254 символов или не адрес — invalid_email.
+2. Больше 30 auth.start с IP за 10 минут — rate_limited с retry_after.
+3. Больше 10 auth.start с IP за 10 минут или 3 неудачных пароля на адрес за 15 минут — нужна вычислительная задача. Решения в запросе нет — state challenge (префикс 16 байт, 18 бит, под атакой 20, срок 2 минуты); решение неверное, просроченное или повторное — challenge_invalid.
+4. Запись: id (UUIDv7), email, ip_prefix, trusted (решена ли задача), expires_at = сейчас + 30 минут. Ответ — state ok, flow_id, методы (только password), expires_at.
+
+Существует ли аккаунт, auth.start не проверяет вовсе, поэтому ответ одинаков и по содержанию, и по времени (ADR-006). Устройство задачи — в файле [защита от ботов](d5d15aca-72ab-4733-828c-2fb1e561460d), ветвления — на [схеме входа](d0fb229d-25be-4532-8e31-b9365e4f69d6).
+
+## Вход (auth.login)
+
+[auth.login](../contract/auth/login.yaml) принимает flow_id, пароль, device_name и platform:
+1. Flow не найден или истёк — flow_expired. Адрес закрыт после 10 неудач за час — rate_limited до конца 15 минут.
+2. Аккаунта нет — argon2id всё равно считается на фиктивном хэше, ответ invalid_credentials: время не выдаёт, что адреса нет.
+3. Пароль неверный — +1 к счётчику адреса (и несуществующего), invalid_credentials. Верный, но хэш со старыми параметрами — пересчитать.
+4. Аккаунт заблокирован — account_blocked, и только после верного пароля: иначе ответ раскрывал бы, что адрес зарегистрирован.
+5. Адрес не подтверждён — state email_unconfirmed; confirm_email уходит снова, если прошлое письмо старше 5 минут. Операции «отправить ещё раз» нет (ADR-012): повтор требует пароля, чужой ящик не завалить.
+6. Включён второй фактор — state totp_required с тем же flow_id; flow получает отметку «пароль принят» и продлевается на 5 минут.
+7. Иначе вход: pending_deletion → active (deletion_cancelled = true, письмо deletion_cancelled); сессия и пара токенов; незнакомая пара (platform, device_name) — письмо new_login; flow удаляется. Ответ — [AuthResult](../contract/dto/AuthResult.yaml) со state signed_in.
+
+## Регистрация (auth.register)
+
+[auth.register](../contract/auth/register.yaml) проверяет flow и поля, затем адрес из flow:
+- свободен — неподтверждённый аккаунт, дом «Мой дом» с поясом из регистрации, аккаунт в нём owner, письмо confirm_email со ссылкой на 24 часа;
+- занят — аккаунт не меняется, уходит register_exists: «если это вы — войдите или сбросьте пароль».
+
+Ответ всегда state check_email: хэш считается и для занятого адреса, письмо уходит после ответа — время одинаково. Неподтверждённый аккаунт через 7 дней удаляет unconfirmed-cleanup. Ветви — на [схеме регистрации](e0f22a1c-5d1c-461f-bf72-bb407b8b10fa).
+
+## Подтверждение адреса (auth.confirm_email)
+
+Токен ссылки — 32 случайных байта base64url, в БД только SHA-256 и срок. [auth.confirm_email](../contract/auth/confirm-email.yaml): неизвестный или использованный — link_invalid; старше 24 часов — link_expired (новое письмо придёт после попытки входа). Иначе email_confirmed = true, токен гасится, сессия, signed_in; new_login нет — вход первый.
+
+## Сброс пароля
+
+- [auth.reset_request](../contract/auth/reset-request.yaml): адрес из flow, а из настроек (access-токен, без flow_id) — из аккаунта; не больше 3 писем на адрес в час; reset_password на 30 минут — только если аккаунт есть; ответ всегда check_email.
+- [auth.reset_complete](../contract/auth/reset-complete.yaml): токен, новый пароль по правилам из файла [пароли](02d805af-75b8-4cf5-b653-5dbf3e5616d5), новый хэш; ссылки сброса гасятся, сессии отзываются с reason password_reset; неподтверждённый адрес считается подтверждённым — письмо доказало владение ящиком. Включён второй фактор — totp_required и новый flow на 5 минут, иначе сессия и signed_in.
+
+## Второй фактор (auth.totp_verify)
+
+[auth.totp_verify](../contract/auth/totp-verify.yaml) принимает только flow с отметкой «пароль принят» и ровно одно из двух — code или recovery_code. Код — RFC 6238 с допуском ±1 шаг; запоминается последний принятый шаг, код того же или более раннего шага отвергается (code_reused). Код восстановления сверяется по SHA-256 и гасится. Неверный — invalid_code и +1 к auth_flows.attempts, пятая неудача — rate_limited и конец flow. Успех — как шаг 7 входа. Подключение — в файле [второй фактор](43565f30-1feb-4e70-a592-5a3cfa9e9eec).
+
+## Обновление токена (auth.refresh)
+
+[auth.refresh](../contract/auth/refresh.yaml) ищет SHA-256 токена в refresh_tokens:
+- не найден или 30 дней без обновления — refresh_invalid;
+- текущий — ротация: новая пара, старый становится предыдущим, новая пара 20 секунд держится в памяти;
+- предыдущий в пределах 20 секунд — та же новая пара (параллельные вкладки, повтор после обрыва);
+- предыдущий позже или более старый — сессия отозвана, auth.session_revoked с reason refresh_reused, письмо session_terminated, отказ refresh_reused.
+
+Ответ — AuthResult без account; access-токен и отзыв — в файле [токены и сессии](7bbd67e0-f4aa-412a-8037-ddef20e53526).
+
+## Что пишет каждая операция
+
+| Операция | Записи в БД | Письма | События |
+|---|---|---|---|
+| auth.start | auth_flows | — | — |
+| auth.login | sessions, refresh_tokens, хэш, deletion_at | confirm_email, new_login, deletion_cancelled | — |
+| auth.register | accounts, houses, house_members | confirm_email или register_exists | — |
+| auth.confirm_email | accounts, sessions, refresh_tokens | — | — |
+| auth.reset_request | токен сброса | reset_password | — |
+| auth.reset_complete | accounts, sessions, refresh_tokens | — | auth.session_revoked |
+| auth.totp_verify | шаг TOTP, коды восстановления, sessions | new_login, deletion_cancelled | — |
+| auth.refresh | refresh_tokens, при повторе sessions | session_terminated | auth.session_revoked |
+
+Счётчики неудач — в памяти процесса: перезапуск их обнуляет, на MVP с одним fikus-api это приемлемо. Тексты писем — в [шаблонах писем](10d89e3c-272a-46ee-8b57-c3869fddcfde).

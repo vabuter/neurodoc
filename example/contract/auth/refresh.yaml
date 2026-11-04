@@ -1,0 +1,60 @@
+# auth.refresh — новая пара токенов с ротацией: текущий refresh становится предыдущим. Повтор предыдущего в течение
+# 20 с возвращает ту же новую пару (параллельные вкладки, потерянный ответ), позже — это повторное использование, и
+# сессия отзывается. Клиенты вызывают операцию за 60 с до конца access и по отказу token_expired — один вызов на все
+# ждущие запросы. Сценарий — «Обновление токена и отзыв сессии».
+
+operation: auth.refresh
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/refresh
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: none   # access к этому моменту мог истечь; доказательство — сам refresh-токен
+summary: "Обновление пары токенов с ротацией refresh-токена."
+
+request:
+  refresh_token:
+    type: string
+    required: true
+    desc: Из последнего AuthResult; живёт 30 дней с последнего обновления
+
+response: AuthResult   # всегда signed_in, без account: профиль клиент уже знает
+
+errors:
+  - code: refresh_invalid
+    category: auth
+    desc: Токен неизвестен или 30 дней без обновления — на экран входа
+  - code: refresh_reused
+    category: auth
+    desc: >-
+      Предыдущий токен позже 20 с или более старый: у токена два владельца, сессия отозвана, уходят событие
+      auth.session_revoked с reason refresh_reused и письмо session_terminated
+
+golden:
+  - name: request
+    part: request
+    value:
+      refresh_token: refresh-demo-anna-1
+    json: '{"refresh_token":"refresh-demo-anna-1"}'
+  - name: signed_in
+    part: response
+    value:
+      state: signed_in
+      session_id: 01a27911-acc7-72da-ac16-55fdcc096295
+      access_token: access-demo-anna-2
+      access_expires_at: "2026-12-15T10:07:51.731Z"
+      refresh_token: refresh-demo-anna-2
+      refresh_expires_at: "2027-01-14T09:52:51.731Z"
+    json: '{"access_expires_at":"2026-12-15T10:07:51.731Z","access_token":"access-demo-anna-2","refresh_expires_at":"2027-01-14T09:52:51.731Z","refresh_token":"refresh-demo-anna-2","session_id":"01a27911-acc7-72da-ac16-55fdcc096295","state":"signed_in"}'
+  - name: refresh_reused
+    part: problem
+    value:
+      code: refresh_reused
+      category: auth
+      message: Сессия завершена из соображений безопасности. Войдите снова.
+      fields: []
+      request_id: 01a27941-85a1-77ed-bc5f-dfa79d29247a
+    json: '{"category":"auth","code":"refresh_reused","fields":[],"message":"Сессия завершена из соображений безопасности. Войдите снова.","request_id":"01a27941-85a1-77ed-bc5f-dfa79d29247a"}'

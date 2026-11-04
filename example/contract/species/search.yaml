@@ -1,0 +1,75 @@
+# species.search — поиск вида в справочнике по латинскому и народным названиям: префикс плюс триграммы (pg_trgm),
+# поэтому находятся и «бендж», и «benjamina», и «фикус бенжамина» с опечаткой. Только одобренные виды; без
+# запроса — популярные. Курсора нет: искать дальше 50-й строки бессмысленно — запрос уточняют.
+
+operation: species.search
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/species
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Поиск вида по латинскому и локальным названиям."
+
+request:
+  q:
+    type: string
+    desc: >-
+      Строка поиска, до 60 символов, без учёта регистра и ё/е. Пусто — 20 видов, которые чаще всего заводят
+      в Fikus: экран «Добавить растение» открывается не с пустого списка
+  limit:
+    type: int
+    desc: Сколько видов вернуть, по умолчанию 20, максимум 50
+
+response:
+  items:
+    type: list<Species>
+    required: true
+    desc: >-
+      Виды по убыванию совпадения: сначала префикс названия на языке аккаунта, затем латинского, затем сходство
+      триграмм, при равенстве — популярность. Пустой список — экран «нет в списке — предложить» (species.suggest)
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      q: [too_long]
+      limit: [out_of_range]
+
+# Запрос q=фикус&limit=2 — первые две строки выдачи. «Фикус каучуконосный» здесь не найти дословно: в справочнике
+# этот вид записан как «Фикус эластика», отсюда предложение вида и его объединение модератором.
+golden:
+  - name: ficus
+    part: response
+    value:
+      items:
+        - id: 019fc710-e100-7448-a192-990183571c83
+          latin_name: Ficus benjamina
+          names: {ru: Фикус Бенджамина, en: Weeping fig}
+          light: bright
+          water_days: 7
+          feed_days: 14
+          mist_days: 4
+          repot_months: 24
+          rotate_days: 14
+          moisture_min: 30
+          moisture_max: 60
+          winter_feed_pause: true
+          toxic_to_pets: true
+        - id: 019fc710-e100-7430-a91d-dd91c7a70642
+          latin_name: Ficus elastica
+          names: {ru: Фикус эластика, en: Rubber plant}
+          light: bright
+          water_days: 9
+          feed_days: 21
+          mist_days: 0
+          repot_months: 24
+          rotate_days: 21
+          moisture_min: 25
+          moisture_max: 55
+          winter_feed_pause: true
+          toxic_to_pets: true
+    json: '{"items":[{"feed_days":14,"id":"019fc710-e100-7448-a192-990183571c83","latin_name":"Ficus benjamina","light":"bright","mist_days":4,"moisture_max":60,"moisture_min":30,"names":{"en":"Weeping fig","ru":"Фикус Бенджамина"},"repot_months":24,"rotate_days":14,"toxic_to_pets":true,"water_days":7,"winter_feed_pause":true},{"feed_days":21,"id":"019fc710-e100-7430-a91d-dd91c7a70642","latin_name":"Ficus elastica","light":"bright","mist_days":0,"moisture_max":55,"moisture_min":25,"names":{"en":"Rubber plant","ru":"Фикус эластика"},"repot_months":24,"rotate_days":21,"toxic_to_pets":true,"water_days":9,"winter_feed_pause":true}]}'

@@ -1,0 +1,20 @@
+# ============================================================
+#  Переводы строк: LF везде, кроме bat-файлов Windows.
+# ============================================================
+# Без этого файла Git for Windows (core.autocrlf=true в системном
+# конфиге по умолчанию) развернёт при клоне всё в CRLF — включая
+# эталонный каталог example/ и sh-скрипт gradlew, который с CRLF
+# падает на Linux и macOS с «bad interpreter: /bin/sh^M».
+
+* text=auto eol=lf
+
+# Батники — нативный для cmd формат
+*.bat text eol=crlf
+
+# Двоичное — не нормализовать
+*.ttf binary
+*.png binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.apk binary

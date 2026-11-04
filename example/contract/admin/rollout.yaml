@@ -1,0 +1,87 @@
+# admin.rollout — раскатка подписанной прошивки волнами 5 → 25 → 50 → 100 %: датчик попадает в волну по хэшу серийного
+# номера, поэтому состав волны стабилен между расширениями. При доле откатов больше 2 % сервер ставит раскатку на паузу
+# сам. Общие отказы admin.* — в admin.overview. Сценарий — «Обновление прошивки по воздуху».
+
+operation: admin.rollout
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/admin/firmware/rollouts
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Раскатка прошивки датчиков волнами."
+
+request:
+  version:
+    type: string
+    required: true
+    desc: Версия semver; образ уже подписан и лежит в корзине fikus-firmware
+  percent:
+    type: int
+    required: true
+    desc: Доля парка — 5, 25, 50 или 100; волну можно только расширить
+  paused:
+    type: bool
+    desc: true — остановить раскатку на текущей волне, false — продолжить
+
+response:
+  version:
+    type: string
+    required: true
+  percent:
+    type: int
+    required: true
+  paused:
+    type: bool
+    required: true
+  started_at:
+    type: time
+    required: true
+    desc: Начало первой волны этой версии
+  devices_targeted:
+    type: int
+    required: true
+    desc: Датчиков в текущей волне
+  devices_updated:
+    type: int
+    required: true
+    desc: Обновились и прислали показания с новой прошивкой
+  devices_rolled_back:
+    type: int
+    required: true
+    desc: Откатились на прежний раздел — новая прошивка не отправила показаний за 2 пробуждения
+
+errors:
+  - code: version_unknown
+    category: not_found
+    desc: Образа этой версии нет в корзине fikus-firmware
+  - code: percent_decrease
+    category: validation
+    desc: Волну можно только расширить или поставить на паузу
+  - code: invalid_fields
+    category: validation
+    fields:
+      percent: [not_allowed]
+
+golden:
+  - name: request
+    part: request
+    value:
+      version: "1.5.0"
+      percent: 5
+      paused: false
+    json: '{"paused":false,"percent":5,"version":"1.5.0"}'
+  - name: first_wave
+    part: response
+    value:
+      version: "1.5.0"
+      percent: 5
+      paused: false
+      started_at: "2027-01-19T10:00:04.512Z"
+      devices_targeted: 1
+      devices_updated: 0
+      devices_rolled_back: 0
+    json: '{"devices_rolled_back":0,"devices_targeted":1,"devices_updated":0,"paused":false,"percent":5,"started_at":"2027-01-19T10:00:04.512Z","version":"1.5.0"}'

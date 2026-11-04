@@ -1,0 +1,76 @@
+# houses.update — настройки дома: название, часовой пояс, полушарие и утреннее окно. Только owner. Смена пояса
+# переносит напоминания со следующего утра (открытые задачи сохраняют свой день), смена пояса или полушария
+# сразу пересчитывает сезон и планы растений дома. Почему пояс у дома — правило «Время и часовые пояса».
+
+operation: houses.update
+kind: request
+transport: http
+http:
+  method: PATCH
+  path: /v1/houses/{house_id}
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Настройки дома: название, пояс, полушарие, утреннее окно."
+
+# Все поля необязательны: нет поля — не трогать.
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути
+  name:
+    type: string
+    desc: Название, 1–60 символов
+  time_zone:
+    type: string
+    desc: Пояс IANA — Europe/Moscow; смещение вроде +03:00 не принимается
+  hemisphere:
+    type: string
+    enum: [north, south]
+    desc: Полушарие для сезона плана, если пояс подсказал неверно
+  morning_window_start:
+    type: string
+    desc: Начало окна, HH:MM
+  morning_window_end:
+    type: string
+    desc: Конец окна, HH:MM; окно не короче 30 мин и не через полночь
+
+response: House      # без members, как в houses.list
+
+# Остальным участникам уходит houses.changed со scope house.
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      name: [required, too_long]
+      time_zone: [invalid_format]
+      morning_window_start: [invalid_format]
+      morning_window_end: [invalid_format, out_of_range]   # короче 30 мин или раньше начала; limit — 30
+  - code: forbidden
+    category: forbidden
+    desc: Не owner — member и helper настройки дома не меняют
+
+# 16 января, после отпуска, Анна сдвигает окно на час раньше — 07:00–09:00: поливать до работы.
+golden:
+  - name: request
+    part: request
+    value:
+      morning_window_start: "07:00"
+      morning_window_end: "09:00"
+    json: '{"morning_window_end":"09:00","morning_window_start":"07:00"}'
+  - name: window_7_9
+    part: response
+    value:
+      id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      name: Квартира на Лесной
+      time_zone: Europe/Moscow
+      hemisphere: north
+      morning_window_start: "07:00"
+      morning_window_end: "09:00"
+      my_role: owner
+      plants_count: 4
+      sensors_count: 3
+      created_at: "2026-09-20T17:05:11.284Z"
+    json: '{"created_at":"2026-09-20T17:05:11.284Z","hemisphere":"north","id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","morning_window_end":"09:00","morning_window_start":"07:00","my_role":"owner","name":"Квартира на Лесной","plants_count":4,"sensors_count":3,"time_zone":"Europe/Moscow"}'

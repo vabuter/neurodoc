@@ -1,0 +1,30 @@
+[package]
+name = "neurodoc-editor"
+# Версии здесь нет намеренно: её даёт git-тег vX.Y.Z через build.rs — ровно так же,
+# как Windows (SetVersionFromGit) и Android (git() в build.gradle.kts).
+edition = "2024"
+rust-version = "1.92"
+description = "Редактор каталогов документации в формате neurodoc"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "neurodoc-editor"
+path = "src/main.rs"
+
+[dependencies]
+# Нижняя планка нативной сборки — GTK 4.14 / libadwaita 1.5 (Ubuntu 24.04, Debian 13):
+# фичи крейтов не дают скомпилировать API новее планки.
+gtk = { package = "gtk4", version = "0.11", features = ["v4_14"] }
+adw = { package = "libadwaita", version = "0.9", features = ["v1_5"] }
+webkit = { package = "webkit6", version = "0.6", features = ["v2_42"] }
+regex = "1"
+serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
+uuid = { version = "1", features = ["v4"] }
+notify = "8"
+async-channel = "2"
+base64 = "0.22"
+chrono = "0.4"
+
+[profile.release]
+strip = true

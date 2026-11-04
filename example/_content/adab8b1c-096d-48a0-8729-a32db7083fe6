@@ -1,0 +1,34 @@
+<svg class="bpmn" viewBox="0 0 1200 500" role="img" aria-label="BPMN: Добавление растения">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема из [сценариев растений и ухода](4920b122-9538-4ee5-b877-09515292c101); подпроцессы — [расчёт плана ухода](2b9d73df-16ad-413a-aa5c-1e02a046d5cd) и [загрузка фото](8c0c67c7-f907-43fe-b9cc-052757b71a35). Операции на чипах: [species.search](../contract/species/search.yaml), [species.suggest](../contract/species/suggest.yaml), [plants.create](../contract/plants/create.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1180" height="480"/><path d="M10 140H1190M10 300H1190M118 10V490"/></g>
+<g class="lane-title"><text x="64" y="79">Пользователь</text><text x="64" y="224">Клиент</text><text x="64" y="399">Сервер</text></g>
+<g class="flow"><path d="M170 75H205"/><path d="M315 75H331"/><path d="M439 75H470"/><path d="M510 75H585"/><path d="M490 95V150"/><path d="M490 170V227"/><path d="M565 255H600V112"/><path d="M700 112V290"/><path d="M700 310V350"/><path d="M680 370H635"/><path d="M700 390V435"/><path d="M720 370H765"/><path d="M895 370H910"/><path d="M960 347V240"/><path d="M960 200V100"/><path d="M980 220H1060"/><path d="M1022 75H1080V200"/><path d="M1100 220H1135"/><path d="M1080 240V355"/></g>
+<g class="task"><rect x="205" y="52" width="110" height="46" rx="7"/><rect x="585" y="38" width="190" height="74" rx="7"/><rect x="415" y="227" width="150" height="56" rx="7"/></g>
+<g class="sys"><rect x="765" y="345" width="130" height="50" rx="7"/><rect x="824" y="382" width="12" height="12"/><rect x="910" y="347" width="100" height="46" rx="7"/><rect x="898" y="50" width="124" height="50" rx="7"/><rect x="954" y="87" width="12" height="12"/></g>
+<g class="op-chip"><rect x="331" y="65" width="108" height="20" rx="4"/><rect x="432.5" y="150" width="115" height="20" rx="4"/><rect x="649" y="290" width="102" height="20" rx="4"/></g>
+<g class="gw"><path d="M490 55l20 20-20 20-20-20zM700 350l20 20-20 20-20-20zM960 200l20 20-20 20-20-20zM1080 200l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="155" cy="75" r="15"/><circle cx="1150" cy="220" r="15"/><circle cx="1150" cy="220" r="12"/></g>
+<g class="ev-end"><circle cx="1080" cy="370" r="15"/></g>
+<g class="ev-err"><circle cx="620" cy="370" r="15"/><circle cx="700" cy="450" r="15"/></g>
+<g class="gwsym"><path d="M484 69l12 12m0-12l-12 12M694 364l12 12m0-12l-12 12M624 362l-7 9h6l-7 8M704 442l-7 9h6l-7 8M830 385v6m-3-3h6M954 214l12 12m0-12l-12 12M960 90v6m-3-3h6M1074 214l12 12m0-12l-12 12M1144 217.5h6v-4l6 6.5-6 6.5v-4h-6z"/></g>
+<g class="nt"><text x="155" y="104">«Добавить<tspan x="155" dy="14">растение»</tspan></text><text x="260" y="72">Ввести<tspan x="260" dy="15">название вида</tspan></text><text x="490" y="47">вид найден?</text><text x="680" y="57">Прозвище, горшок (материал,<tspan x="680" dy="15">диаметр, дренаж), грунт,</tspan><tspan x="680" dy="15">комната и окно, свет,</tspan><tspan x="680" dy="15">последний полив (необяз.)</tspan></text><text x="490" y="244">Своё название вида,<tspan x="490" dy="15">профиль «обычное</tspan><tspan x="490" dy="15">комнатное»</tspan></text><text x="620" y="399">house_plant_limit<tspan x="620" dy="14">(уже 200 растений)</tspan></text><text x="830" y="361">Расчёт<tspan x="830" dy="15">плана ухода</tspan></text><text x="960" y="367">Первые<tspan x="960" dy="15">задачи</tspan></text><text x="960" y="66">Загрузка фото<tspan x="960" dy="15">→ обложка</tspan></text><text x="1150" y="170">к схеме<tspan x="1150" dy="14">привязки</tspan><tspan x="1150" dy="14">датчика</tspan></text><text x="1080" y="399">растение в доме,<tspan x="1080" dy="14">план готов</tspan></text><g text-anchor="end"><text x="688" y="351">ответ?</text><text x="948" y="201">добавить<tspan x="948" dy="14">фото?</tspan></text><text x="1068" y="201">есть датчик?</text></g><text text-anchor="start" x="721" y="447">forbidden:<tspan x="721" dy="14">роль helper</tspan></text></g>
+<g class="chip-label"><text x="385" y="79">species.search</text><text x="490" y="164">species.suggest</text><text x="700" y="304">plants.create</text></g>
+<g class="lbl"><text x="517" y="67">да: выбрать</text><text x="496" y="127">нет</text><text x="757" y="296">Idempotency-Key</text><text x="726" y="362">успех</text><text x="966" y="165">да</text><text x="1104" y="212">да</text><text x="1086" y="283">нет</text><text text-anchor="middle" x="1020" y="238">нет: заглушка<tspan x="1020" dy="13">обложки</tspan></text></g>
+</svg>

@@ -1,0 +1,46 @@
+# Операции API и DTO: растения и уход
+
+Доменная выборка из [реестра операций API](46a3b885-d219-41b0-9e37-648a0f894800): кто из участников дома что может и чем операция заканчивается. Смысл домена — в [концепции растений](895bfa7b-1ef3-4c82-bd48-f16ab70d02ea).
+
+## Операции
+
+| операция | метод и путь | кто может | что делает | state и коды ошибок |
+|---|---|---|---|---|
+| [plants.list](../contract/plants/list.yaml) | GET /v1/houses/{house_id}/plants | owner, member, helper | Растения дома для сетки «Мои растения». | not_found (дом), forbidden (не участник) |
+| [plants.get](../contract/plants/get.yaml) | GET /v1/plants/{plant_id} | owner, member, helper | Карточка растения целиком: план, фото, ближайшие задачи, датчик. | not_found, forbidden |
+| [plants.create](../contract/plants/create.yaml) | POST /v1/houses/{house_id}/plants | owner, member | Новое растение в доме; сервер сразу считает план ухода. | species_not_found (not_found), house_plant_limit (conflict, 200), forbidden (helper), validation |
+| [plants.update](../contract/plants/update.yaml) | PATCH /v1/plants/{plant_id} | owner, member | Изменение растения; при смене вида, горшка, грунта или света план пересчитывается. | species_not_found (not_found), forbidden (helper), not_found, validation |
+| [plants.archive](../contract/plants/archive.yaml) | POST /v1/plants/{plant_id}/archive | owner, member | Архивирование растения вместо удаления: журнал остаётся. | already_archived (conflict), forbidden (helper), not_found |
+| [species.search](../contract/species/search.yaml) | GET /v1/species | любой вошедший | Поиск вида по латинскому и локальным названиям. | validation (q, limit) |
+| [species.suggest](../contract/species/suggest.yaml) | POST /v1/species/suggestions | owner, member — по растению своего дома | Предложение нового вида в справочник. | state created / exists; duplicate_pending (conflict), forbidden (helper), validation |
+| [care.tasks](../contract/care/tasks.yaml) | GET /v1/houses/{house_id}/tasks | owner, member, helper | Задачи ухода дома за период — экран «Сегодня» и неделя. | range_too_long (validation), forbidden, validation |
+| [care.complete](../contract/care/complete.yaml) | POST /v1/tasks/{task_id}/complete | owner, member, helper | Выполнить задачу ухода; можно задним числом до 72 ч. | state done / already_done; task_closed (conflict), done_at_too_old (validation), validation |
+| [care.snooze](../contract/care/snooze.yaml) | POST /v1/tasks/{task_id}/snooze | owner, member, helper | Отложить задачу не дальше чем на 72 ч. | snooze_too_far (validation), task_closed (conflict), validation |
+| [care.skip](../contract/care/skip.yaml) | POST /v1/tasks/{task_id}/skip | owner, member, helper | Пропустить задачу; следующая считается от плановой даты. | state skipped / already_done; task_closed (conflict), validation |
+| [care.log](../contract/care/log.yaml) | GET /v1/plants/{plant_id}/log | owner, member, helper | Журнал ухода растения, новые записи сверху. | not_found, validation |
+| [photos.upload_url](../contract/photos/upload-url.yaml) | POST /v1/plants/{plant_id}/photos | owner, member, helper | Подписанная ссылка для прямой загрузки фото в хранилище. | too_large, unsupported_type (validation), plant_photo_limit (conflict, 20) |
+| [photos.confirm](../contract/photos/confirm.yaml) | POST /v1/photos/{photo_id}/confirm | owner, member, helper | Подтвердить загрузку — сервер ставит фото в обработку. | upload_missing (conflict), too_large (validation), not_found |
+| [care.task_due](../contract/care/task-due.yaml), push | WebSocket /v1/push, событие care.task_due | получатели напоминания | Напоминание: в доме наступило утреннее окно, есть задачи. | — |
+
+validation — invalid_fields с полями из YAML; прочерк — своих кодов нет. Общие отказы token_expired и session_revoked, а также forbidden для того, кто не состоит в доме растения или задачи, в таблице не повторяются.
+
+## Права
+
+helper только читает растения и действует с задачами: выполняет, откладывает, пропускает и прикладывает к отметке фото — поэтому фотооперации ему открыты, а смена обложки через plants.update нет. Завести, изменить, архивировать растение или предложить вид он не может. Причина узости: helper — соседка на время отпуска, ей нужен уход, а не право переименовать чужой фикус. owner и member в домене растений равны — разница между ними в управлении участниками, отпуском и настройками дома.
+
+## DTO
+
+| DTO | что описывает | на что смотреть |
+|---|---|---|
+| [Plant](../contract/dto/Plant.yaml) | Растение дома со всеми свойствами, планом и ближайшими задачами. | plan — в plants.get и plants.create, photos — только в plants.get; next_tasks — до 5, в plants.list — одна |
+| [Species](../contract/dto/Species.yaml) | Вид из справочника с базовым профилем ухода. | feed_days и mist_days, равные 0, — задачи нет |
+| [SpeciesSuggestion](../contract/dto/SpeciesSuggestion.yaml) | Предложение нового вида и решение модератора. | status pending / approved / merged / rejected |
+| [CarePlan](../contract/dto/CarePlan.yaml) | План ухода растения: пункт на каждый вид задачи. | season, computed_at |
+| [CarePlanItem](../contract/dto/CarePlanItem.yaml) | Пункт плана: интервал, ближайшая дата и множители «почему так». | factors в процентах, pause_reason, adjusted_by_sensor |
+| [CareTask](../contract/dto/CareTask.yaml) | Задача ухода с датой и состоянием. | assignee_id — помощник в отпуске |
+| [CareLogEntry](../contract/dto/CareLogEntry.yaml) | Запись журнала ухода; записи только добавляются. | у системных записей нет author_id |
+| [Photo](../contract/dto/Photo.yaml) | Фото растения и его обработка. | url и thumb_url подписаны на 1 ч |
+
+## Ответы и повторы
+
+Полный ответ plants.get со всеми полями показан в [JSON-примере карточки растения](003746e6-bbaf-409c-a68e-2eb726a634bc). Идемпотентны plants.create, care.complete, care.skip и photos.upload_url: заголовок Idempotency-Key (ключ живёт 24 ч) превращает повтор после обрыва связи в тот же ответ, а не во второе растение или вторую запись журнала; care.snooze и plants.update ключа не требуют — повтор даёт то же состояние. Курсор есть только у care.log (по 50, максимум 200): в доме не больше 200 растений, а период care.tasks — не больше 31 дня. Остальные участники узнают об изменениях из [houses.changed](../contract/houses/changed.yaml): scope plants — растения и фото, scope tasks — задачи и пересчёт плана.

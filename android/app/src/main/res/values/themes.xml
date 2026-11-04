@@ -1,0 +1,9 @@
+<resources>
+    <!-- Compose сам рисует UI, системной теме нужен только прозрачный фон окна -->
+    <style name="Theme.NeurodocEditor" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -1,0 +1,35 @@
+<svg class="bpmn" viewBox="0 0 1180 620" role="img" aria-label="BPMN: Регистрация и подтверждение адреса">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема из [сценариев авторизации](62574d4b-6127-47ee-b4bb-decfb396b370); начинается со схемы [входа](d0fb229d-25be-4532-8e31-b9365e4f69d6), когда пользователь выбрал «Я здесь впервые». Операции на чипах: [auth.register](../contract/auth/register.yaml), [auth.confirm_email](../contract/auth/confirm-email.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1160" height="600"/><path d="M10 130H1170M10 250H1170M10 500H1170M118 10V610"/></g>
+<g class="lane-title"><text x="64" y="74">Пользователь</text><text x="64" y="194">Клиент</text><text x="64" y="379">Сервер</text><text x="64" y="559">Почта</text></g>
+<g class="flow"><path d="M205 75H255"/><path d="M405 75H440V240"/><path d="M440 260V280"/><path d="M420 300H350V98"/><path d="M460 300H510"/><path d="M530 320V527"/><path d="M550 300H645V387"/><path d="M715 415H735"/><path d="M790 438V527"/><path d="M865 550H880V323"/><path d="M595 550H610V590H915V323"/><path d="M895 277V213"/><path d="M895 167V98"/><path d="M820 70V16H128V415H165"/><path d="M315 415H345"/><path d="M970 75H1060V240"/><path d="M1060 260V285"/><path d="M1080 305H1115"/><path d="M1060 325V395"/><path d="M1040 305H1005"/></g>
+<g class="flow" style="marker-end:none"><path d="M815 191L830 190" stroke-dasharray="2 3"/><path d="M805 166H815V216H805"/></g>
+<g class="task"><rect x="255" y="52" width="150" height="46" rx="7"/><rect x="830" y="167" width="130" height="46" rx="7"/><rect x="820" y="52" width="150" height="46" rx="7"/></g>
+<g class="sys"><rect x="465" y="527" width="130" height="46" rx="7"/><rect x="575" y="387" width="140" height="56" rx="7"/><rect x="735" y="392" width="110" height="46" rx="7"/><rect x="715" y="527" width="150" height="46" rx="7"/><rect x="835" y="277" width="120" height="46" rx="7"/><rect x="165" y="392" width="150" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="389" y="240" width="102" height="20" rx="4"/><rect x="992.5" y="240" width="135" height="20" rx="4"/></g>
+<g class="gw"><path d="M440 280l20 20-20 20-20-20zM530 280l20 20-20 20-20-20zM1060 285l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="190" cy="75" r="15"/><circle cx="820" cy="85" r="15"/><circle cx="820" cy="85" r="12"/><circle cx="820" cy="85" r="7.5"/></g>
+<g class="ev-end"><circle cx="360" cy="415" r="15"/><circle cx="1130" cy="305" r="15"/><circle cx="1060" cy="410" r="15"/></g>
+<g class="ev-err"><circle cx="990" cy="305" r="15"/></g>
+<g class="gwsym"><path d="M434 294l12 12m0-12l-12 12M524 294l12 12m0-12l-12 12M820 80v5h4M1054 299l12 12m0-12l-12 12M994 297l-7 9h6l-7 8"/></g>
+<g class="nt"><text x="190" y="39">«Я здесь впервые»<tspan x="190" dy="14">после auth.start</tspan></text><text x="330" y="72">Заполнить форму: имя,<tspan x="330" dy="15">пароль, язык, пояс</tspan></text><text x="440" y="335">поля<tspan x="440" dy="14">в порядке?</tspan></text><text x="530" y="272">адрес занят?</text><text x="530" y="547">Письмо<tspan x="530" dy="15">register_exists</tspan></text><text x="645" y="404">Создать<tspan x="645" dy="15">неподтверждённый</tspan><tspan x="645" dy="15">аккаунт</tspan></text><text x="790" y="412">Создать дом<tspan x="790" dy="15">«Мой дом»</tspan></text><text x="790" y="547">Письмо confirm_email<tspan x="790" dy="15">(ссылка на 24 ч)</tspan></text><text x="895" y="297">Ответ state<tspan x="895" dy="15">check_email</tspan></text><text x="895" y="187">Экран<tspan x="895" dy="15">«Проверьте почту»</tspan></text><text x="895" y="72">Открыть ссылку<tspan x="895" dy="15">из письма</tspan></text><text x="240" y="412">unconfirmed-cleanup:<tspan x="240" dy="15">удалить аккаунт и дом</tspan></text><text x="1130" y="334">signed_in:<tspan x="1130" dy="14">добро</tspan><tspan x="1130" dy="14">пожаловать</tspan></text><text x="990" y="334">link_invalid</text><text text-anchor="start" x="381" y="419">аккаунт удалён</text><g text-anchor="end"><text x="1048" y="286">ответ?</text><text x="1039" y="400">ссылка устарела —<tspan x="1039" dy="14">войдите, письмо</tspan><tspan x="1039" dy="14">придёт снова</tspan></text></g></g>
+<g class="chip-label"><text x="440" y="254">auth.register</text><text x="1060" y="254">auth.confirm_email</text></g>
+<g class="lbl"><text x="467" y="292">да</text><text x="536" y="345">да</text><text x="560" y="292">нет</text><text x="838" y="37">7 дней без подтверждения</text><text x="1066" y="382">link_expired</text><g text-anchor="end"><text x="809" y="181">неразглашение:<tspan x="809" dy="14">ответ одинаков</tspan><tspan x="809" dy="14">для любых адресов</tspan></text><text x="344" y="172">FieldProblem:<tspan x="344" dy="13">common_password,</tspan><tspan x="344" dy="13">too_short</tspan></text><text x="889" y="268">state check_email</text></g></g>
+</svg>

@@ -1,0 +1,127 @@
+# Реестр операций API
+
+Все 60 операций-запросов контракта Fikus, по таблице на домен. Реестр ведётся руками и сверяется скриптом scripts/contract-check в CI: лишняя или пропущенная строка валит сборку. События — в [реестре push-событий](27694ddc-5ed8-415d-b3af-78cc80863cf3), типы — в [реестре DTO](28dd7c6b-e4e0-4770-992e-e7fd5cf988e0), правила изменения — в файле [как ведётся контракт](c35dca17-bd95-4170-a9eb-aeb673e199dc).
+
+Значения колонок — поля YAML слово в слово. Авторизация: none — без входа, user — access-токен, admin — роль admin со вторым фактором, device — токен датчика на хосте ingest.fikus.example. Клиенты — кто вызывает операцию; server — её реализует fikus-api.
+
+## system
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [system.config](../contract/system/config.yaml) | GET /v1/config | none | live | www, app, admin, android, server | Настройки клиента: минимальные версии, клиентские флаги, режим обслуживания. |
+
+## auth
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [auth.start](../contract/auth/start.yaml) | POST /v1/auth/start | none | live | app, admin, android, server | Начало входа или регистрации по адресу: identifier-first, ответ одинаков для любых адресов. |
+| [auth.login](../contract/auth/login.yaml) | POST /v1/auth/login | none | live | app, admin, android, server | Вход по паролю в рамках flow. |
+| [auth.register](../contract/auth/register.yaml) | POST /v1/auth/register | none | live | app, android, server | Регистрация в рамках flow; ответ одинаков для свободного и занятого адреса. |
+| [auth.confirm_email](../contract/auth/confirm-email.yaml) | POST /v1/auth/confirm-email | none | live | app, android, server | Подтверждение адреса по токену из письма и вход. |
+| [auth.reset_request](../contract/auth/reset-request.yaml) | POST /v1/auth/reset | none | live | app, android, server | Запрос письма для сброса пароля; ответ одинаков для любых адресов. |
+| [auth.reset_complete](../contract/auth/reset-complete.yaml) | POST /v1/auth/reset/complete | none | live | app, android, server | Новый пароль по токену из письма; отзывает все сессии и входит. |
+| [auth.totp_verify](../contract/auth/totp-verify.yaml) | POST /v1/auth/totp/verify | none | live | app, admin, android, server | Второй шаг входа: код TOTP или код восстановления. |
+| [auth.refresh](../contract/auth/refresh.yaml) | POST /v1/auth/refresh | none | live | app, admin, android, server | Обновление пары токенов с ротацией refresh-токена. |
+| [auth.logout](../contract/auth/logout.yaml) | POST /v1/auth/logout | user | live | app, admin, android, server | Выход: отзыв текущей сессии. |
+| [auth.sessions](../contract/auth/sessions.yaml) | GET /v1/auth/sessions | user | live | app, admin, android, server | Сессии аккаунта — вошедшие устройства, свежие сверху. |
+| [auth.session_revoke](../contract/auth/session-revoke.yaml) | DELETE /v1/auth/sessions/{session_id} | user | live | app, admin, android, server | Отзыв другой сессии аккаунта. |
+| [auth.totp_setup](../contract/auth/totp-setup.yaml) | POST /v1/auth/totp/setup | user | live | app, admin, android, server | Заготовка второго фактора: секрет и otpauth-ссылка для QR. |
+| [auth.totp_enable](../contract/auth/totp-enable.yaml) | POST /v1/auth/totp/enable | user | live | app, admin, android, server | Включение второго фактора кодом из приложения; выдаёт коды восстановления. |
+| [auth.totp_disable](../contract/auth/totp-disable.yaml) | POST /v1/auth/totp/disable | user | live | app, admin, android, server | Отключение второго фактора. |
+
+## account
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [account.get](../contract/account/get.yaml) | GET /v1/me | user | live | app, admin, android, server | Профиль текущего аккаунта. |
+| [account.update](../contract/account/update.yaml) | PATCH /v1/me | user | live | app, android, server | Изменение профиля и настроек уведомлений. |
+| [account.delete](../contract/account/delete.yaml) | POST /v1/me/delete | user | live | app, android, server | Удаление аккаунта с отсрочкой 14 дней. |
+| [account.push_token](../contract/account/push-token.yaml) | PUT /v1/me/push-token | user | live | android, server | Регистрация токена мобильного пуша для текущей сессии. |
+
+## plants
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [plants.list](../contract/plants/list.yaml) | GET /v1/houses/{house_id}/plants | user | live | app, android, server | Растения дома для сетки «Мои растения». |
+| [plants.get](../contract/plants/get.yaml) | GET /v1/plants/{plant_id} | user | live | app, android, server | Карточка растения целиком: план, фото, ближайшие задачи, датчик. |
+| [plants.create](../contract/plants/create.yaml) | POST /v1/houses/{house_id}/plants | user | live | app, android, server | Новое растение в доме; сервер сразу считает план ухода. |
+| [plants.update](../contract/plants/update.yaml) | PATCH /v1/plants/{plant_id} | user | live | app, android, server | Изменение растения; при смене вида, горшка, грунта или света план пересчитывается. |
+| [plants.archive](../contract/plants/archive.yaml) | POST /v1/plants/{plant_id}/archive | user | live | app, android, server | Архивирование растения вместо удаления: журнал остаётся. |
+
+## species
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [species.search](../contract/species/search.yaml) | GET /v1/species | user | live | app, android, server | Поиск вида по латинскому и локальным названиям. |
+| [species.suggest](../contract/species/suggest.yaml) | POST /v1/species/suggestions | user | live | app, android, server | Предложение нового вида в справочник. |
+
+## care
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [care.tasks](../contract/care/tasks.yaml) | GET /v1/houses/{house_id}/tasks | user | live | app, android, server | Задачи ухода дома за период — экран «Сегодня» и неделя. |
+| [care.complete](../contract/care/complete.yaml) | POST /v1/tasks/{task_id}/complete | user | live | app, android, server | Выполнить задачу ухода; можно задним числом до 72 ч. |
+| [care.snooze](../contract/care/snooze.yaml) | POST /v1/tasks/{task_id}/snooze | user | live | app, android, server | Отложить задачу не дальше чем на 72 ч. |
+| [care.skip](../contract/care/skip.yaml) | POST /v1/tasks/{task_id}/skip | user | live | app, android, server | Пропустить задачу; следующая считается от плановой даты. |
+| [care.log](../contract/care/log.yaml) | GET /v1/plants/{plant_id}/log | user | live | app, android, server | Журнал ухода растения, новые записи сверху. |
+
+## photos
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [photos.upload_url](../contract/photos/upload-url.yaml) | POST /v1/plants/{plant_id}/photos | user | live | app, android, server | Подписанная ссылка для прямой загрузки фото в хранилище. |
+| [photos.confirm](../contract/photos/confirm.yaml) | POST /v1/photos/{photo_id}/confirm | user | live | app, android, server | Подтвердить загрузку — сервер ставит фото в обработку. |
+
+## houses
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [houses.list](../contract/houses/list.yaml) | GET /v1/houses | user | live | app, android, server | Дома, в которых состоит пользователь. |
+| [houses.get](../contract/houses/get.yaml) | GET /v1/houses/{house_id} | user | live | app, android, server | Дом целиком: настройки, участники, отпуск. |
+| [houses.update](../contract/houses/update.yaml) | PATCH /v1/houses/{house_id} | user | live | app, android, server | Настройки дома: название, пояс, полушарие, утреннее окно. |
+| [houses.member_update](../contract/houses/member-update.yaml) | PATCH /v1/houses/{house_id}/members/{account_id} | user | live | app, android, server | Смена роли участника или срока доступа помощника. |
+| [houses.member_remove](../contract/houses/member-remove.yaml) | DELETE /v1/houses/{house_id}/members/{account_id} | user | live | app, android, server | Удалить участника из дома или выйти самому. |
+| [houses.vacation](../contract/houses/vacation.yaml) | PUT /v1/houses/{house_id}/vacation | user | live | app, android, server | Включить, изменить или досрочно завершить режим отпуска. |
+
+## invites
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [invites.create](../contract/invites/create.yaml) | POST /v1/houses/{house_id}/invites | user | live | app, android, server | Создать приглашение в дом: код и ссылка. |
+| [invites.preview](../contract/invites/preview.yaml) | GET /v1/invites/{code} | none | live | app, android, server | Что за приглашение — без входа. |
+| [invites.accept](../contract/invites/accept.yaml) | POST /v1/invites/{code}/accept | user | live | app, android, server | Принять приглашение и вступить в дом. |
+
+## sensors
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [sensors.claim](../contract/sensors/claim.yaml) | POST /v1/houses/{house_id}/sensors | user | draft | app, android, server | Привязать датчик к дому кодом с коробки. |
+| [sensors.list](../contract/sensors/list.yaml) | GET /v1/houses/{house_id}/sensors | user | draft | app, android, server | Датчики дома с последними показаниями. |
+| [sensors.update](../contract/sensors/update.yaml) | PATCH /v1/sensors/{sensor_id} | user | draft | app, android, server | Имя датчика и растение, над которым он стоит. |
+| [sensors.calibrate](../contract/sensors/calibrate.yaml) | POST /v1/sensors/{sensor_id}/calibration | user | draft | app, android, server | Шаг двухточечной калибровки: сухая точка, мокрая точка или сброс. |
+| [sensors.readings](../contract/sensors/readings.yaml) | GET /v1/sensors/{sensor_id}/readings | user | draft | app, android, server | Показания датчика за период для графика. |
+
+## ingest
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [ingest.readings](../contract/ingest/readings.yaml) | POST /v1/device/readings | device | draft | sense, server | Приём пачки показаний от датчика на ingest.fikus.example. |
+| [ingest.firmware](../contract/ingest/firmware.yaml) | GET /v1/device/firmware | device | draft | sense, server | Есть ли для датчика новая прошивка. |
+
+## admin
+
+| операция | метод и путь | авторизация | статус | клиенты | что делает |
+|---|---|---|---|---|---|
+| [admin.overview](../contract/admin/overview.yaml) | GET /v1/admin/overview | admin | draft | admin, server | Сводные цифры для главного экрана админки. |
+| [admin.users](../contract/admin/users.yaml) | GET /v1/admin/users | admin | draft | admin, server | Поиск пользователей по началу адреса или id. |
+| [admin.user_update](../contract/admin/user-update.yaml) | PATCH /v1/admin/users/{user_id} | admin | draft | admin, server | Блокировка, разблокировка и трассировка пользователя. |
+| [admin.species_queue](../contract/admin/species-queue.yaml) | GET /v1/admin/species/suggestions | admin | draft | admin, server | Очередь предложенных видов на модерацию. |
+| [admin.species_decide](../contract/admin/species-decide.yaml) | POST /v1/admin/species/suggestions/{suggestion_id}/decision | admin | draft | admin, server | Решение по предложенному виду: одобрить, объединить или отклонить. |
+| [admin.sensors](../contract/admin/sensors.yaml) | GET /v1/admin/sensors | admin | draft | admin, server | Парк датчиков: проблемные датчики и версии прошивки. |
+| [admin.rollout](../contract/admin/rollout.yaml) | POST /v1/admin/firmware/rollouts | admin | draft | admin, server | Раскатка прошивки датчиков волнами. |
+| [admin.build](../contract/admin/build.yaml) | GET /v1/admin/build | admin | draft | admin, server | Что сейчас на проде: версия, коммит, схема БД, флаги. |
+| [admin.flag_set](../contract/admin/flag-set.yaml) | PUT /v1/admin/flags/{key} | admin | draft | admin, server | Включение или выключение флага функции. |
+| [admin.logs](../contract/admin/logs.yaml) | GET /v1/admin/logs | admin | draft | admin, server | Хвост журнала fikus-api с фильтрами. |
+| [admin.maintenance](../contract/admin/maintenance.yaml) | PUT /v1/admin/maintenance | admin | draft | admin, server | Режим обслуживания: выключен, баннер или полный. |
+
+Подробнее по доменам — права по ролям дома, значения state и коды ошибок каждой операции — в таблицах доменов: [авторизация и аккаунт](d29ed780-7aa3-49c1-abdd-24169f391b2d), [растения и уход](1cd772ba-1d0b-46e8-918f-5b6cbd4bc9b2), [дом, приглашения и датчики](cf871d66-fb43-47c6-bc24-2859e45f7ad0), [админка](1efa388a-76e3-4e2a-b174-3ba724b47a82).

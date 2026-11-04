@@ -1,0 +1,81 @@
+# auth.confirm_email — переход по ссылке https://app.fikus.example/confirm?token=… из письма confirm_email: адрес
+# подтверждён, и пользователь сразу входит. Ссылка живёт 24 ч и срабатывает один раз; письма new_login нет — вход
+# первый. Устаревшая ссылка не перевыпускается: новое письмо придёт после попытки входа (ADR-012).
+# Сценарий — «Регистрация и подтверждение адреса».
+
+operation: auth.confirm_email
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/confirm-email
+status: live
+since: v1
+clients: [app, android, server]
+auth: none
+summary: "Подтверждение адреса по токену из письма и вход."
+
+request:
+  token:
+    type: string
+    required: true
+    desc: Параметр token из ссылки — 32 случайных байта в base64url; в базе только его SHA-256 и срок
+  device_name:
+    type: string
+    desc: Как в auth.login, до 64 символов
+  platform:
+    type: string
+    required: true
+    enum: [web, android, ios]
+
+response: AuthResult   # всегда signed_in: email_confirmed = true, токен ссылки погашен, создана сессия
+
+errors:
+  - code: link_expired
+    category: conflict
+    desc: Ссылке больше 24 ч — экран «Ссылка устарела — войдите, письмо придёт снова»
+  - code: link_invalid
+    category: not_found
+    desc: Токен неизвестен или уже использован
+
+golden:
+  - name: request
+    part: request
+    value:
+      token: confirm-demo-vera
+      device_name: Телефон Веры
+      platform: android
+    json: '{"device_name":"Телефон Веры","platform":"android","token":"confirm-demo-vera"}'
+  - name: signed_in
+    part: response
+    value:
+      state: signed_in
+      session_id: 01a2943c-3580-7bca-be70-af549ae14bcb
+      access_token: access-demo-vera-1
+      access_expires_at: "2026-12-20T16:30:03.552Z"
+      refresh_token: refresh-demo-vera-1
+      refresh_expires_at: "2027-01-19T16:15:03.552Z"
+      account:
+        id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+        email: vera@example.com
+        email_confirmed: true
+        display_name: Вера
+        locale: ru
+        time_zone: Europe/Moscow
+        units: metric
+        role: user
+        totp_enabled: false
+        digest_enabled: true
+        quiet_hours_start: "22:00"
+        quiet_hours_end: "08:00"
+        created_at: "2026-12-20T16:12:40.087Z"
+    json: '{"access_expires_at":"2026-12-20T16:30:03.552Z","access_token":"access-demo-vera-1","account":{"created_at":"2026-12-20T16:12:40.087Z","digest_enabled":true,"display_name":"Вера","email":"vera@example.com","email_confirmed":true,"id":"01a2943a-0517-7033-93c0-609f8dec0e5a","locale":"ru","quiet_hours_end":"08:00","quiet_hours_start":"22:00","role":"user","time_zone":"Europe/Moscow","totp_enabled":false,"units":"metric"},"refresh_expires_at":"2027-01-19T16:15:03.552Z","refresh_token":"refresh-demo-vera-1","session_id":"01a2943c-3580-7bca-be70-af549ae14bcb","state":"signed_in"}'
+  - name: link_expired
+    part: problem
+    value:
+      code: link_expired
+      category: conflict
+      message: Ссылка устарела. Войдите — новое письмо придёт само.
+      fields: []
+      request_id: 01a29cfd-8bfe-7220-950b-320e03463036
+    json: '{"category":"conflict","code":"link_expired","fields":[],"message":"Ссылка устарела. Войдите — новое письмо придёт само.","request_id":"01a29cfd-8bfe-7220-950b-320e03463036"}'

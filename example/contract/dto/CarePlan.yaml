@@ -1,0 +1,77 @@
+# CarePlan — план ухода растения: по пункту на каждый вид задачи, который нужен виду. Считает только сервер
+# (алгоритм — «План ухода — серверный алгоритм»), клиенты показывают итог и множители на экране «Почему так».
+# Приходит в Plant.plan ответов plants.get и plants.create; golden — зимний план Бенджи из JSON-примера.
+
+dto: CarePlan
+status: live
+since: v1
+clients: [app, android, server]
+summary: "План ухода растения: пункт на каждый вид задачи."
+
+fields:
+  plant_id:
+    type: id
+    required: true
+  season:
+    type: string
+    required: true
+    enum: [winter, spring, summer, autumn]
+    desc: >-
+      Сезон по месяцу в поясе дома и полушарию дома: на севере зима — декабрь–февраль, на юге — июнь–август.
+      Границу сезона ловит season-replan в 00:10 по поясу дома
+  computed_at:
+    type: time
+    required: true
+    desc: >-
+      Последний пересчёт по любому из пяти поводов — правка растения, граница сезона, показание датчика,
+      отметка задачи, смена вида после модерации. Пересчёт без изменений обновляет computed_at, но событий не шлёт
+  items:
+    type: list<CarePlanItem>
+    required: true
+    desc: >-
+      Пункты в порядке water, feed, mist, repot, rotate. Вида задачи, которого у вида нет (feed_days или
+      mist_days равны 0), в списке нет; задача на паузе остаётся пунктом с paused = true
+
+golden:
+  - name: benji_winter
+    value:
+      plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+      season: winter
+      computed_at: "2026-12-15T09:30:03.655Z"
+      items:
+        - kind: water
+          base_days: 7
+          factors: {season: 150, pot: 110, light: 90}
+          interval_days: 10
+          next_due_at: "2026-12-19T05:00:00.000Z"
+          paused: false
+          adjusted_by_sensor: false
+        - kind: feed
+          base_days: 14
+          factors: {}
+          interval_days: 14
+          paused: true
+          pause_reason: winter_rest
+          adjusted_by_sensor: false
+        - kind: mist
+          base_days: 4
+          factors: {season: 100}
+          interval_days: 4
+          next_due_at: "2026-12-17T05:00:00.000Z"
+          paused: false
+          adjusted_by_sensor: false
+        - kind: repot
+          base_days: 730
+          factors: {}
+          interval_days: 730
+          next_due_at: "2028-10-03T05:00:00.000Z"
+          paused: false
+          adjusted_by_sensor: false
+        - kind: rotate
+          base_days: 14
+          factors: {}
+          interval_days: 14
+          next_due_at: "2026-12-24T05:00:00.000Z"
+          paused: false
+          adjusted_by_sensor: false
+    json: '{"computed_at":"2026-12-15T09:30:03.655Z","items":[{"adjusted_by_sensor":false,"base_days":7,"factors":{"light":90,"pot":110,"season":150},"interval_days":10,"kind":"water","next_due_at":"2026-12-19T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":14,"factors":{},"interval_days":14,"kind":"feed","pause_reason":"winter_rest","paused":true},{"adjusted_by_sensor":false,"base_days":4,"factors":{"season":100},"interval_days":4,"kind":"mist","next_due_at":"2026-12-17T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":730,"factors":{},"interval_days":730,"kind":"repot","next_due_at":"2028-10-03T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":14,"factors":{},"interval_days":14,"kind":"rotate","next_due_at":"2026-12-24T05:00:00.000Z","paused":false}],"plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","season":"winter"}'

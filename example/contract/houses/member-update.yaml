@@ -1,0 +1,73 @@
+# houses.member_update — смена роли участника или срока доступа помощника. Только owner. У helper срок обязателен:
+# временный доступ без конца — это уже member. Единственного owner понизить нельзя — дом без owner некому
+# настраивать. Так Борис становится вторым owner, а Вера остаётся помощником ещё на неделю.
+
+operation: houses.member_update
+kind: request
+transport: http
+http:
+  method: PATCH
+  path: /v1/houses/{house_id}/members/{account_id}
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Смена роли участника или срока доступа помощника."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути
+  account_id:
+    type: id
+    required: true
+    desc: Участник — параметр пути; owner может менять и себя, если в доме есть другой owner
+  role:
+    type: string
+    required: true
+    enum: [owner, member, helper]
+  access_until:
+    type: time
+    desc: >-
+      Конец доступа — обязателен для helper и запрещён для остальных; в будущем. Помощнику отпуска срок нельзя
+      сделать раньше vacation_ends_at — сначала меняют отпуск
+
+response: HouseMember
+
+# Остальным участникам — houses.changed со scope members.
+errors:
+  - code: last_owner
+    category: conflict
+    desc: Понизить единственного owner нельзя — сначала сделать owner кого-то ещё
+  - code: helper_needs_until
+    category: validation
+    desc: Роль helper без access_until
+  - code: invalid_fields
+    category: validation
+    fields:
+      access_until: [out_of_range, not_allowed]   # в прошлом, раньше конца отпуска; у не-helper
+  - code: forbidden
+    category: forbidden
+    desc: Не owner
+  - code: not_found
+    category: not_found
+    desc: Такого участника в доме нет
+
+# 10 января Анна продлевает доступ Веры на неделю — с 14 до 21 января.
+golden:
+  - name: request
+    part: request
+    value:
+      role: helper
+      access_until: "2027-01-21T05:00:00.000Z"
+    json: '{"access_until":"2027-01-21T05:00:00.000Z","role":"helper"}'
+  - name: vera_extended
+    part: response
+    value:
+      account_id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+      display_name: Вера
+      role: helper
+      access_until: "2027-01-21T05:00:00.000Z"
+      joined_at: "2026-12-20T16:20:05.331Z"
+    json: '{"access_until":"2027-01-21T05:00:00.000Z","account_id":"01a2943a-0517-7033-93c0-609f8dec0e5a","display_name":"Вера","joined_at":"2026-12-20T16:20:05.331Z","role":"helper"}'

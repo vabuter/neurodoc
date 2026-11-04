@@ -1,0 +1,170 @@
+# /etc/nginx/sites-available/fikus.conf — все адреса Fikus на одном сервере
+# Правила описаны [в схеме маршрутизации](68b008e0-9c52-4b07-88cf-0ced889407b5), файл ставится [на шаге 3 установки](5114115d-469e-4944-8304-ad658dd533ab).
+# nginx 1.22 из Debian 12 не знает директивы «http2 on» (она появилась в 1.25.1): http2 — параметр listen.
+# Схема в proxy_pass и редиректе — из $api_proto и $tls_proto: литерал со схемой редактор
+# каталога подсветил бы веб-ссылкой в никуда.
+
+upstream fikus_api {
+    server 127.0.0.1:8080;
+    keepalive 16;
+}
+
+map $host $api_proto { default http; }
+map $host $tls_proto { default https; }
+
+# Пустое значение, а не close: keepalive до fikus-api не рвётся, WebSocket получает upgrade
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      '';
+}
+
+# Грубая отсечка по IP; точные лимиты считает fikus-api
+limit_req_zone $binary_remote_addr zone=fikus_api:10m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=fikus_ingest:10m rate=1r/s;
+
+# Для api и ingest; proxy_set_header наследуется, пока ниже нет своих.
+# X-Real-IP нужен fikus-api для лимитов по IP и ip_prefix сессий.
+proxy_http_version 1.1;
+proxy_set_header Host $host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection $connection_upgrade;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name fikus.example app.fikus.example admin.fikus.example api.fikus.example ingest.fikus.example;
+    # По http — только проверки Let's Encrypt
+    location /.well-known/acme-challenge/ { root /var/www/fikus/acme; }
+    location / { return 301 $tls_proto://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name fikus.example;
+    # Сертификат, протоколы, HSTS — [общие параметры TLS](01ea9051-c295-4b22-b484-a2c108ab9b14). include — в каждом server:
+    # add_header с уровня http не доходит до блока со своими add_header.
+    include /etc/nginx/snippets/fikus-tls.conf;
+    root /var/www/fikus/www/current;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+
+    # Обслуживание: [кто ставит флаг](23f1e856-85b0-4501-a8e9-fbc8c6999b6a), [что видит пользователь](44ac5d9b-badb-453c-a2e1-f841f87f99e7).
+    # -f — это stat от www-data: у /var/lib/fikus права 0711, иначе флаг молча не виден.
+    error_page 503 /maintenance.html;
+    location = /maintenance.html { root /var/www/fikus/status; internal; }
+
+    location / {
+        # Проверка в location: на уровне server её снова прошёл бы внутренний переход
+        # на /maintenance.html, и вместо страницы ушёл бы голый 503
+        if (-f /var/lib/fikus/maintenance.flag) { return 503; }
+        expires 1h;
+        try_files $uri $uri/ =404;
+    }
+    # Имена с хэшем — кэш на год. expires, а не add_header: add_header в location
+    # отменил бы все заголовки уровня server
+    location /_astro/ { expires 1y; }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name app.fikus.example;
+    include /etc/nginx/snippets/fikus-tls.conf;
+    root /var/www/fikus/app/current;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+    # Саму CSP кладёт в index.html сборка SvelteKit (kit.csp, режим hash): meta с хэшем её встроенного
+    # скрипта запуска — политика заголовком без этого хэша не дала бы приложению стартовать.
+    # В meta не действует только frame-ancestors, его и добавляет nginx. Страница обслуживания
+    # не из сборки и получает лишь этот заголовок: её встроенные стиль и скрипт работают
+    add_header Content-Security-Policy "frame-ancestors 'none'" always;
+
+    error_page 503 /maintenance.html;
+    location = /maintenance.html { root /var/www/fikus/status; internal; }
+
+    # SPA: неизвестный путь — index.html; он не кэшируется, чтобы релиз был виден сразу
+    location / {
+        if (-f /var/lib/fikus/maintenance.flag) { return 503; }
+        expires -1;
+        try_files $uri /index.html;
+    }
+    location /_app/immutable/ { expires 1y; }
+}
+
+# Обслуживание админку не закрывает: иначе режим не выключить из неё же
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name admin.fikus.example;
+    include /etc/nginx/snippets/fikus-tls.conf;
+    root /var/www/fikus/admin/current;
+    add_header X-Robots-Tag noindex always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+    # Как у app: остальная CSP — meta-тег из сборки
+    add_header Content-Security-Policy "frame-ancestors 'none'" always;
+
+    location / {
+        expires -1;
+        try_files $uri /index.html;
+    }
+    location /_app/immutable/ { expires 1y; }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name api.fikus.example;
+    include /etc/nginx/snippets/fikus-tls.conf;
+
+    # Фото идут в хранилище мимо API: JSON больше 1 МБ — ошибка или атака
+    client_max_body_size 1m;
+    limit_req zone=fikus_api burst=40 nodelay;
+    limit_req_status 429;
+    proxy_read_timeout 30s;
+    # fikus-api перезапускается (деплой) — nginx отвечает за него тем же Problem
+    error_page 502 504 =503 @api_down;
+
+    location /v1/ { proxy_pass $api_proto://fikus_api; }
+    # Канал push: дольше двух пингов (сервер пингует раз в 30 с)
+    location = /v1/push {
+        proxy_pass $api_proto://fikus_api;
+        proxy_read_timeout 75s;
+    }
+    location = /health { proxy_pass $api_proto://fikus_api; }
+    # /metrics и прочее — 404: метрики Prometheus снимает локально
+    location / { return 404; }
+
+    location @api_down {
+        default_type application/json;
+        # add_header снимает заголовки уровня server — для заглушки не страшно
+        add_header Retry-After 30 always;
+        return 503 '{"category":"unavailable","code":"api_unavailable","fields":[],"message":"fikus-api перезапускается","request_id":"$request_id","retry_after":30}';
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name ingest.fikus.example;
+    include /etc/nginx/snippets/fikus-tls.conf;
+
+    # Пачка датчика — до 48 показаний
+    client_max_body_size 64k;
+    # Датчики дома выходят через один NAT: burst пропускает совпавшие пробуждения
+    limit_req zone=fikus_ingest burst=20 nodelay;
+    limit_req_status 429;
+    error_page 502 504 =503 @api_down;
+
+    location /v1/device/ { proxy_pass $api_proto://fikus_api; }
+    location = /health { proxy_pass $api_proto://fikus_api; }
+    location / { return 404; }
+
+    location @api_down {
+        default_type application/json;
+        add_header Retry-After 30 always;
+        return 503 '{"category":"unavailable","code":"api_unavailable","fields":[],"message":"fikus-api перезапускается","request_id":"$request_id","retry_after":30}';
+    }
+}

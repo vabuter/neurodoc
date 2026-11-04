@@ -1,0 +1,54 @@
+# Хранение данных: PostgreSQL и миграции
+
+Всё состояние Fikus — в одной базе PostgreSQL 16 на том же сервере, что и fikus-api ([backend — обзор](01d0e3e4-4f45-49a8-92c6-dbefbe79c79f)): база и роль fikus, подключение по unix-сокету с аутентификацией peer — пароля нет, и подбирать нечего. Установка и postgresql.conf — в [шаге 2 установки сервера](b191c65b-445a-41c5-9b64-cb4f75498cd5). Файлы — фото, прошивки, резервные копии — в базу не кладутся, они в [объектном хранилище](f12a73ee-43d1-4689-99fd-3223161ce417).
+
+## Основные таблицы
+
+| Таблица | Ключевые колонки | Индексы | Заметки |
+|---|---|---|---|
+| accounts | id, email, password_hash, role, status, time_zone, totp_secret, deletion_at | unique (email) | email в нижнем регистре после NFC; пароль — строка PHC |
+| sessions | id, account_id, device_name, platform, ip_prefix, last_seen_at, push_token | (account_id, last_seen_at) | push-токен живёт и умирает с сессией |
+| refresh_tokens | session_id, token_hash, prev_hash, rotated_at, expires_at | unique (token_hash) | только SHA-256; prev_hash — для окна повтора 20 с |
+| auth_flows | id, email, ip_prefix, trusted, attempts, expires_at | (expires_at) | поток входа на 30 мин |
+| email_tokens | account_id, purpose, token_hash, expires_at, used_at | unique (token_hash) | ссылки подтверждения и сброса; только SHA-256 |
+| houses | id, name, time_zone, hemisphere, morning_window_start, morning_window_end | — | пояс — имя IANA, не смещение |
+| house_members | house_id, account_id, role, access_until, joined_at | PK (house_id, account_id), (account_id) | CHECK: у helper всегда есть access_until |
+| vacations | house_id, helper_id, starts_at, ends_at | EXCLUDE USING gist (house_id WITH =, tstzrange(starts_at, ends_at) WITH &&) | отпуска дома не пересекаются |
+| invites | house_id, code, role, access_until, expires_at, used_at | unique (code) | код — в верхнем регистре без дефиса |
+| plants | id, house_id, species_id, nickname, pot_material, soil, light, archived_at | (house_id) WHERE archived_at IS NULL | единственное «мягкое» удаление |
+| species | id, latin_name, names, water_days, moisture_min, moisture_max | unique (latin_name), GIN gin_trgm_ops по названиям | names — jsonb «локаль → название» |
+| species_suggestions | id, latin_name, author_id, plant_id, status | (status, created_at) | очередь модерации |
+| care_tasks | id, plant_id, house_id, kind, due_at, state, assignee_id | unique (plant_id, kind) WHERE state IN ('open', 'snoozed'); (house_id, due_at) | открытая задача вида на растение — одна |
+| care_log | id, plant_id, kind, at, author_id, task_id, amount_ml | (plant_id, at, id) | только INSERT; курсор — (at, id) |
+| photos | id, plant_id, state, width, height, taken_at | (plant_id, created_at) | ключ объекта выводится из id |
+| sensors | id, serial, token_hash, claim_code_hash, house_id, plant_id, raw_dry, raw_wet | unique (serial), unique (token_hash) | токен устройства и код с коробки — только SHA-256 |
+| sensor_readings | sensor_id, at, moisture_raw, moisture_pct, temperature_dc, light_lux, battery_mv | PK (sensor_id, at) | секции по месяцам, 13 месяцев; дубли отсекает PK |
+| jobs | id, kind, slot, run_at, payload, attempts, locked_until, status | (run_at) WHERE status = 'pending'; unique (kind, slot) | очередь фоновых задач |
+| settings | key, value, changed_at, changed_by | PK (key) | флаги функций, сервер перечитывает раз в 30 с |
+| audit_log | at, actor_id, action, target_id, request_id | (at), (target_id, at) | действия админов; только INSERT |
+
+## Правила
+
+- id — тип uuid со значениями UUIDv7, генерирует сервер ([идентификаторы](3d4702ac-f3c1-4ce7-ae9b-348b6f7eb7d4)). Время — timestamptz, локальные даты — date. Дробных чисел нет и в базе: numeric и double precision не используются, температура — smallint в десятых долях градуса.
+- Удаление настоящее; «мягкое» только у растений (plants.archived_at), чтобы журнал архивного растения остался. После удаления аккаунта персональных данных не остаётся: строки аккаунта, сессий и токенов удаляются, записи журнала в чужих домах обезличиваются, дом без других участников уходит вместе с растениями и фото в хранилище. В резервных копиях удалённое живёт ещё до 30 дней — столько их хранит корзина.
+- Расширения: pg_trgm — поиск видов по названиям триграммами; btree_gist — исключающее ограничение на vacations: даже две параллельные правки не дадут дому пересекающихся отпусков.
+- sensor_readings разбита по месяцам: при 5 000 датчиков это около 7 млн строк в месяц, и старый месяц уходит одним DROP секции, а не DELETE миллионов строк. Секции на два месяца вперёд создаёт и старше 13 месяцев удаляет сам fikus-api — при старте под замком миграций и затем раз в сутки.
+- Задание фоновой задачи ставится в той же транзакции, что и изменение данных, — ради этого очередь и живёт в базе ([фоновые задачи](2333813e-aafa-43f1-8db3-c6c8ea18de24)).
+
+## Миграции
+
+- SQL-файлы server/migrations/NNNN_описание.sql вшиты в бинарник через embed — отдельного инструмента и шага деплоя нет.
+- Применяются при старте fikus-api под advisory-lock: второй экземпляр ждёт, пока первый допишет схему. Каждая миграция — одна транзакция вместе со строкой в schema_migrations; исключение — CREATE INDEX CONCURRENTLY: он идёт вне транзакции, поэтому такая миграция состоит из него одного.
+- Только вперёд: откатов нет, ошибку чинит следующая миграция. Откат релиза — это старый бинарник на новой схеме ([деплой и CI](42c2e3fd-a5e1-4c67-b067-4c38d858ced3)), поэтому каждая миграция совместима с предыдущей версией кода: добавить колонку → начать её использовать → удалить старую, три релиза.
+- Миграция с тяжёлой блокировкой таблицы выкладывается под флагом режима обслуживания; индексы на больших таблицах строятся только CONCURRENTLY.
+
+Версию схемы на проде показывает [раздел «Сборка» в админке](97456252-2fd1-4272-b60d-10f79bb64cda): применённая версия и последняя, которую знает бинарник, расхождение — красным. На сервере — из psql:
+
+```bash
+# текущая версия схемы
+sudo -u fikus psql -d fikus -c 'select max(version) from schema_migrations'
+# последние применённые миграции
+sudo -u fikus psql -d fikus -c 'select version, name, applied_at from schema_migrations order by version desc limit 5'
+```
+
+Резервную копию (pg_dump в 03:30 UTC, шифрование age, корзина fikus-backups) делает [скрипт резервного копирования](66f8d82a-d296-4cb5-adc3-cf4a37fd5396); восстановление проверяют вручную первого числа месяца.

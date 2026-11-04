@@ -1,0 +1,51 @@
+# auth.reset_request — «Забыли пароль?»: письмо reset_password со ссылкой на 30 мин уходит, только если аккаунт
+# есть, а ответ всегда check_email. Из настроек вызывается с access-токеном и без flow_id — так в MVP меняется
+# пароль (ADR-013), адрес берётся из аккаунта. Сценарий — «Сброс пароля».
+
+operation: auth.reset_request
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/reset
+status: live
+since: v1
+clients: [app, android, server]
+auth: none   # из настроек — с заголовком Authorization и без flow_id
+summary: "Запрос письма для сброса пароля; ответ одинаков для любых адресов."
+
+request:
+  flow_id:
+    type: id
+    desc: Поток входа с экрана пароля, адрес — из него; без flow_id запрос обязан нести access-токен
+
+response:
+  state:
+    type: string
+    required: true
+    enum: [check_email]
+    desc: Всегда check_email — есть аккаунт или нет
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      flow_id: [required]   # нет ни flow_id, ни access-токена
+  - code: flow_expired
+    category: auth
+    desc: Flow не найден или старше 30 мин — начать с auth.start
+  - code: rate_limited
+    category: rate_limit
+    desc: Больше 3 писем на адрес за час; у несуществующего адреса запросы считаются так же, иначе отказ выдал бы, есть ли аккаунт
+
+golden:
+  - name: request
+    part: request
+    value:
+      flow_id: 01a27912-4650-73ed-981a-63e1fcdeb793
+    json: '{"flow_id":"01a27912-4650-73ed-981a-63e1fcdeb793"}'
+  - name: check_email
+    part: response
+    value:
+      state: check_email
+    json: '{"state":"check_email"}'

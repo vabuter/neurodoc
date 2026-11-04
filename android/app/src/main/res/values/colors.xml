@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- цвета совпадают с десктопной версией: тёмный графит и teal-акцент -->
+    <color name="window_background">#F3F3F3</color>
+    <color name="teal_accent">#12A094</color>
+    <color name="teal_dark">#04201E</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

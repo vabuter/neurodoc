@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="NeurodocEditor.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:NeurodocEditor.Controls"
+    xmlns:vm="using:NeurodocEditor.ViewModels"
+    Title="Neurodoc Editor">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <!-- KeyboardAcceleratorPlacementMode=Hidden: иначе WinUI сам показывает
+         всплывающую подсказку «Ctrl+S» в произвольных местах окна -->
+    <!-- Alt+←/→ обрабатываются в OnRootPreviewKeyDown: KeyboardAccelerator с Alt
+         срабатывает только один раз, затем XAML «залипает» в меню-режиме -->
+    <Grid x:Name="RootGrid" Background="{ThemeResource WindowBackgroundBrush}"
+          KeyboardAcceleratorPlacementMode="Hidden"
+          PreviewKeyDown="OnRootPreviewKeyDown">
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="OnSaveAccelerator" />
+            <KeyboardAccelerator Key="F2" Invoked="OnSaveAccelerator" />
+            <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="OnFindInFileAccelerator" />
+            <KeyboardAccelerator Key="F" Modifiers="Control,Shift" Invoked="OnFindAccelerator" />
+            <KeyboardAccelerator Key="R" Modifiers="Control" Invoked="OnReplaceAccelerator" />
+            <KeyboardAccelerator Key="R" Modifiers="Control,Shift" Invoked="OnReplaceProjectAccelerator" />
+            <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="OnNewFileAccelerator" />
+            <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="OnInsertLinkAccelerator" />
+            <KeyboardAccelerator Key="F5" Invoked="OnReloadAccelerator" />
+            <KeyboardAccelerator Key="H" Modifiers="Control" Invoked="OnHomeAccelerator" />
+            <KeyboardAccelerator Key="O" Modifiers="Control" Invoked="OnOpenByIdAccelerator" />
+            <KeyboardAccelerator Key="B" Modifiers="Control" Invoked="OnBrokenLinksAccelerator" />
+            <KeyboardAccelerator Key="F1" Invoked="OnHotkeysAccelerator" />
+        </Grid.KeyboardAccelerators>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ======== Кастомный заголовок окна ======== -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0,0,0">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                <Image Source="ms-appx:///Assets/app-icon-32.png" Width="16" Height="16" VerticalAlignment="Center" />
+                <TextBlock Text="Neurodoc Editor" FontSize="13" VerticalAlignment="Center" />
+                <TextBlock x:Name="TitleVersionText" FontSize="12" VerticalAlignment="Center"
+                           Foreground="{ThemeResource DimTextBrush}" />
+                <TextBlock x:Name="TitleProjectText" FontSize="13" VerticalAlignment="Center"
+                           Foreground="{ThemeResource DimTextBrush}" />
+                <TextBlock x:Name="TitleBranchText" FontSize="12" VerticalAlignment="Center"
+                           Foreground="{ThemeResource DimTextBrush}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ======== Панель инструментов ========
+             При нехватке ширины панель прокручивается, а не обрезается. MinWidth привязан
+             к ширине видимой области: пока места хватает, колонка-распорка растягивает
+             панель как раньше, и полоса прокрутки не появляется. -->
+        <ScrollViewer x:Name="ToolbarScroll" Grid.Row="1"
+                      HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+        <Grid Padding="12,2,12,8"
+              MinWidth="{Binding ElementName=ToolbarScroll, Path=ViewportWidth}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" Spacing="2">
+                <Button x:Name="BackButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnBackClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Назад (Alt+←)">
+                    <FontIcon Glyph="&#xE72B;" FontSize="16" />
+                </Button>
+                <Button x:Name="ForwardButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnForwardClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Вперёд (Alt+→)">
+                    <FontIcon Glyph="&#xE72A;" FontSize="16" />
+                </Button>
+                <Button x:Name="HomeButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnHomeClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Перейти к корневому файлу (Ctrl+H)">
+                    <FontIcon Glyph="&#xE80F;" FontSize="16" />
+                </Button>
+
+                <Border Width="1" Height="20" Background="{ThemeResource CardBorderBrush}" Margin="8,0" VerticalAlignment="Center" />
+
+                <Button x:Name="InsertLinkButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnInsertLinkClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Вставить новую ссылку в позицию курсора и перейти к новому файлу (Ctrl+T)">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE71B;" FontSize="16" />
+                        <TextBlock Text="Новая ссылка" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="LinkSelectionButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnLinkSelectionClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Связать выделенный текст со ссылкой из буфера обмена (Ctrl+L)">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE167;" FontSize="16" />
+                        <TextBlock Text="Связать" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="NewFileButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnNewFileClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Создать новый файл, не привязанный к другим (Ctrl+N)">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE710;" FontSize="16" />
+                        <TextBlock Text="Новый файл" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="OpenByIdButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnOpenByIdClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Открыть файл по UUID или пути (Ctrl+O)">
+                    <FontIcon Glyph="&#xE8E5;" FontSize="16" />
+                </Button>
+                <Button x:Name="CopyLinkButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnCopyLinkClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Копировать ссылку на текущий файл в буфер обмена">
+                    <FontIcon Glyph="&#xE8C8;" FontSize="16" />
+                </Button>
+                <Button x:Name="CopyContentButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnCopyContentClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Копировать содержимое файла в буфер обмена">
+                    <FontIcon Glyph="&#xE7C3;" FontSize="16" />
+                </Button>
+
+                <Border Width="1" Height="20" Background="{ThemeResource CardBorderBrush}" Margin="8,0" VerticalAlignment="Center" />
+
+                <Button x:Name="BrokenLinksButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnBrokenLinksClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Битые ссылки в проекте">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE7BA;" FontSize="16" />
+                        <TextBlock x:Name="BrokenLinksCountText" FontSize="12" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="DeleteButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnDeleteClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Удалить текущий файл">
+                    <FontIcon Glyph="&#xE74D;" FontSize="16" />
+                </Button>
+                <Button x:Name="ReloadButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnReloadClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Перечитать проект с диска (F5)">
+                    <FontIcon Glyph="&#xE895;" FontSize="16" />
+                </Button>
+
+                <Border Width="1" Height="20" Background="{ThemeResource CardBorderBrush}" Margin="8,0" VerticalAlignment="Center" />
+
+                <!-- Пункты меню строятся при каждом открытии: список веток динамический -->
+                <Button x:Name="GitButton" Style="{StaticResource ToolIconButtonStyle}" IsEnabled="False"
+                        ToolTipService.ToolTip="Git: сохранение и получение изменений, ветки, история">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Git" FontSize="13" VerticalAlignment="Center" />
+                        <FontIcon Glyph="&#xE70D;" FontSize="10" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout x:Name="GitFlyout" Opening="OnGitFlyoutOpening" />
+                    </Button.Flyout>
+                </Button>
+                <ProgressRing x:Name="GitProgress" Width="16" Height="16" IsActive="False"
+                              VerticalAlignment="Center" Margin="4,0,0,0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                <Button x:Name="ReplaceButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnReplaceClick" IsEnabled="False"
+                        ToolTipService.ToolTip="Поиск и замена (Ctrl+R)">
+                    <FontIcon Glyph="&#xE8AB;" FontSize="16" />
+                </Button>
+                <AutoSuggestBox x:Name="SearchBox" Width="280" QueryIcon="Find" IsEnabled="False"
+                                PlaceholderText="Поиск по проекту (Ctrl+Shift+F)"
+                                VerticalAlignment="Center"
+                                QuerySubmitted="OnSearchSubmitted"
+                                PreviewKeyDown="OnSearchBoxKeyDown" />
+                <Button x:Name="HotkeysButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnHotkeysClick" ToolTipService.ToolTip="Горячие клавиши (F1)">
+                    <FontIcon Glyph="&#xE897;" FontSize="16" />
+                </Button>
+                <Button x:Name="SettingsGear" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnSettingsClick" ToolTipService.ToolTip="Настройки">
+                    <FontIcon Glyph="&#xE713;" FontSize="16" />
+                </Button>
+                <Button x:Name="ProjectsButton" Style="{StaticResource ToolIconButtonStyle}"
+                        Click="OnProjectsClick" ToolTipService.ToolTip="Проекты">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8B7;" FontSize="16" />
+                        <TextBlock x:Name="ProjectNameText" Text="Проекты" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <TeachingTip x:Name="CopyTip"
+                         Target="{x:Bind CopyLinkButton}"
+                         Title="Ссылка скопирована"
+                         PreferredPlacement="Bottom" />
+        </Grid>
+        </ScrollViewer>
+
+        <!-- ======== Основная область ======== -->
+        <Grid x:Name="ContentArea" Grid.Row="2" Padding="12,0,12,12"
+              ColumnSpacing="12" RowSpacing="8" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Хлебные крошки: все пути от root до текущего файла -->
+            <ScrollViewer x:Name="BreadcrumbsScroll" Grid.Row="0" Grid.ColumnSpan="2" MaxHeight="108"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto"
+                          HorizontalScrollMode="Enabled"
+                          Visibility="Collapsed">
+                <ItemsControl x:Name="BreadcrumbsList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BreadcrumbPath">
+                            <ItemsControl ItemsSource="{x:Bind Segments}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BreadcrumbSegment">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE76C;" FontSize="9" Margin="2,0"
+                                                      VerticalAlignment="Center"
+                                                      Visibility="{x:Bind ChevronVisibility}"
+                                                      Foreground="{ThemeResource DimTextBrush}" />
+                                            <HyperlinkButton Content="{x:Bind Title}"
+                                                             Click="OnBreadcrumbClick"
+                                                             IsEnabled="{x:Bind IsClickable}"
+                                                             Padding="5,2" FontSize="12" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Колонка редактора -->
+            <Grid Grid.Row="1" Grid.Column="0">
+
+
+                <!-- Карточка редактора -->
+                <Border x:Name="EditorCard"
+                        Background="{ThemeResource EditorBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1" CornerRadius="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Padding="20,8,12,10" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="FileIdText" FontSize="11" FontFamily="Consolas"
+                                       MaxWidth="240"
+                                       Foreground="{ThemeResource DimTextBrush}"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            <!-- Кнопок форматов много: в узком окне строка прокручивается,
+                                 а не обрезается. Имя файла слева ужимается первым. -->
+                            <ScrollViewer x:Name="FormatsScroll" Grid.Column="1"
+                                          HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                                <ToggleButton x:Name="RawToggle" Content="Как есть" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnRawToggle" Unchecked="OnRawToggle"
+                                              ToolTipService.ToolTip="Показать файл без форматирования: ссылки не сворачиваются и не подсвечиваются, текст правится посимвольно" />
+                                <Border Width="1" Height="16" Background="{ThemeResource CardBorderBrush}"
+                                        Margin="4,0" VerticalAlignment="Center" />
+                                <ToggleButton x:Name="MdToggle" Content="MD" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать как отрендеренный Markdown" />
+                                <ToggleButton x:Name="SvgToggle" Content="SVG" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать содержимое как SVG-рисунок" />
+                                <ToggleButton x:Name="JsonToggle" Content="JSON" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать с подсветкой синтаксиса JSON" />
+                                <ToggleButton x:Name="YamlToggle" Content="YAML" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать с подсветкой синтаксиса YAML" />
+                                <ToggleButton x:Name="BashToggle" Content="Bash" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать с подсветкой синтаксиса Bash" />
+                                <ToggleButton x:Name="AdocToggle" Content="AsciiDoc" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать как отрендеренный AsciiDoc" />
+                                <ToggleButton x:Name="HtmlToggle" Content="HTML" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать как HTML-страницу" />
+                                <ToggleButton x:Name="NginxToggle" Content="nginx" FontSize="11" Padding="9,3"
+                                              CornerRadius="4" IsEnabled="False"
+                                              Checked="OnFormatToggle" Unchecked="OnFormatToggle"
+                                              ToolTipService.ToolTip="Показать как конфигурацию nginx" />
+                            </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <!-- Редактор растёт по высоте содержимого, прокрутка — внешним ScrollViewer:
+                             координаты GetRect в WASDK контентные, поэтому чипы ссылок лежат в том же
+                             прокручиваемом контейнере и движутся вместе с текстом -->
+                        <ScrollViewer x:Name="EditorScroll" Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <Grid>
+                            <RichEditBox
+                                x:Name="Editor"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="20,6,20,16"
+                                TextWrapping="Wrap"
+                                IsSpellCheckEnabled="False"
+                                DisabledFormattingAccelerators="All"
+                                ClipboardCopyFormat="PlainText"
+                                TextChanged="OnEditorTextChanged"
+                                PreviewKeyDown="OnEditorPreviewKeyDown"
+                                Paste="OnEditorPaste"
+                                SelectionChanged="OnEditorSelectionChanged">
+                                <RichEditBox.Resources>
+                                    <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+                                    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                                    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                                    <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="Transparent" />
+                                    <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
+                                    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+                                    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+                                    <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="Transparent" />
+                                </RichEditBox.Resources>
+                            </RichEditBox>
+                            <controls:HandCanvas x:Name="LinkOverlay"
+                                                 PointerMoved="OnOverlayPointerMoved"
+                                                 PointerExited="OnOverlayPointerExited"
+                                                 PointerPressed="OnOverlayPointerPressed"
+                                                 PointerReleased="OnOverlayPointerReleased" />
+                            </Grid>
+                        </ScrollViewer>
+
+                        <!-- Просмотр форматированного содержимого (SVG / подсветка синтаксиса) -->
+                        <WebView2 x:Name="FormatViewer" Grid.Row="1" Visibility="Collapsed"
+                                  DefaultBackgroundColor="Transparent" />
+
+                        <!-- Поиск по текущему файлу (Ctrl+F) -->
+                        <Border x:Name="FindBar" Grid.Row="1" Visibility="Collapsed"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,26,0"
+                                Background="{ThemeResource EditorBackgroundBrush}"
+                                BorderBrush="{ThemeResource CardBorderBrush}"
+                                BorderThickness="1" CornerRadius="6" Padding="8,5"
+                                Canvas.ZIndex="10">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBox x:Name="FindBox" Width="210" PlaceholderText="Найти в файле"
+                                         TextChanged="OnFindBoxTextChanged" KeyDown="OnFindBoxKeyDown" />
+                                <TextBlock x:Name="FindCountText" VerticalAlignment="Center" FontSize="12"
+                                           Foreground="{ThemeResource DimTextBrush}" MinWidth="44"
+                                           TextAlignment="Center" />
+                                <Button Style="{StaticResource ToolIconButtonStyle}" Padding="6"
+                                        Click="OnFindPrevClick" ToolTipService.ToolTip="Предыдущее (Shift+Enter)">
+                                    <FontIcon Glyph="&#xE70E;" FontSize="12" />
+                                </Button>
+                                <Button Style="{StaticResource ToolIconButtonStyle}" Padding="6"
+                                        Click="OnFindNextClick" ToolTipService.ToolTip="Следующее (Enter)">
+                                    <FontIcon Glyph="&#xE70D;" FontSize="12" />
+                                </Button>
+                                <Button Style="{StaticResource ToolIconButtonStyle}" Padding="6"
+                                        Click="OnFindCloseClick" ToolTipService.ToolTip="Закрыть (Esc)">
+                                    <FontIcon Glyph="&#xE711;" FontSize="12" />
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Правая панель -->
+            <Grid Grid.Row="1" Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Прогресс чтения: сколько файлов пройдено и куда идти дальше -->
+                <Border x:Name="ReadingCard" Grid.Row="5"
+                        Background="{ThemeResource PaneBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1" CornerRadius="8">
+                    <StackPanel Padding="14,12,14,12" Spacing="8">
+                        <TextBlock Text="Чтение" FontWeight="SemiBold" FontSize="13" />
+                        <TextBlock x:Name="ReadingCountText" FontSize="12"
+                                   Foreground="{ThemeResource DimTextBrush}" />
+                        <ProgressBar x:Name="ReadingBar" Minimum="0" Maximum="1" Height="3" />
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Button x:Name="ReadNextButton" Content="Далее" FontSize="12" Padding="10,4"
+                                    CornerRadius="4" Click="OnReadNextClick"
+                                    ToolTipService.ToolTip="Открыть следующий непрочитанный файл" />
+                            <ToggleButton x:Name="ReadMarkToggle" Content="Прочитано" FontSize="12" Padding="10,4"
+                                          CornerRadius="4" Click="OnReadMarkToggled"
+                                          ToolTipService.ToolTip="Отметка о прочтении текущего файла" />
+                            <Button x:Name="ReadResetButton" Content="Сбросить" FontSize="12" Padding="10,4"
+                                    CornerRadius="4" Click="OnReadResetClick"
+                                    ToolTipService.ToolTip="Забыть прогресс чтения этого проекта" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Результаты поиска -->
+                <Border x:Name="SearchCard" Grid.Row="0" MaxHeight="340" Margin="0,0,0,8"
+                        Visibility="Collapsed"
+                        Background="{ThemeResource PaneBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1" CornerRadius="8">
+                    <Grid Padding="14,10,8,10" RowSpacing="6">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="SearchHeaderText" FontWeight="SemiBold" FontSize="13"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            <Button Grid.Column="1" Style="{StaticResource ToolIconButtonStyle}" Padding="6"
+                                    Click="OnSearchCloseClick" ToolTipService.ToolTip="Закрыть результаты">
+                                <FontIcon Glyph="&#xE711;" FontSize="12" />
+                            </Button>
+                        </Grid>
+                        <ListView x:Name="SearchList" Grid.Row="1" SelectionMode="None"
+                                  IsItemClickEnabled="True" ItemClick="OnSearchResultClick"
+                                  Margin="-6,0,0,0">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SearchResultVM">
+                                    <StackPanel Padding="0,7" Spacing="2">
+                                        <TextBlock Text="{x:Bind Title}" FontSize="11"
+                                                   Foreground="{ThemeResource DimTextBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock FontSize="12" TextWrapping="Wrap" MaxLines="3"
+                                                   TextTrimming="CharacterEllipsis">
+                                            <Run Text="{x:Bind Prefix}" /><Run Text="{x:Bind Match}" FontWeight="Bold"
+                                                 Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" /><Run Text="{x:Bind Suffix}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </Border>
+
+                <!-- Git: история коммитов текущей ветки; клик по коммиту показывает
+                     его файлы, тумблер расширяет список до «всё изменённое с коммита» -->
+                <Border x:Name="GitHistoryCard" Grid.Row="1" MaxHeight="340" Margin="0,0,0,8"
+                        Visibility="Collapsed"
+                        Background="{ThemeResource PaneBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1" CornerRadius="8">
+                    <Grid Padding="14,10,8,10" RowSpacing="6">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid ColumnSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="GitBackToCommitsButton" Visibility="Collapsed"
+                                    Padding="6,2" CornerRadius="4" BorderThickness="0" Background="Transparent"
+                                    Click="OnGitBackToCommitsClick"
+                                    ToolTipService.ToolTip="Назад к списку коммитов">
+                                <FontIcon Glyph="&#xE72B;" FontSize="12" />
+                            </Button>
+                            <TextBlock x:Name="GitHistoryHeader" Grid.Column="1" Text="История"
+                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <Button Grid.Column="2" Padding="6,2" CornerRadius="4"
+                                    BorderThickness="0" Background="Transparent"
+                                    Click="OnGitHistoryCloseClick" ToolTipService.ToolTip="Скрыть">
+                                <FontIcon Glyph="&#xE711;" FontSize="12" />
+                            </Button>
+                        </Grid>
+                        <ToggleButton x:Name="GitSinceToggle" Grid.Row="1" Visibility="Collapsed"
+                                      Content="Все изменения с этого коммита" FontSize="12"
+                                      Padding="10,4" CornerRadius="4" Click="OnGitSinceToggled" />
+                        <Grid Grid.Row="2">
+                            <ListView x:Name="GitCommitsList" SelectionMode="None"
+                                      IsItemClickEnabled="True" ItemClick="OnGitCommitClick"
+                                      Margin="-6,0,0,0">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:GitCommitVM">
+                                        <StackPanel Padding="0,7">
+                                            <TextBlock Text="{x:Bind Message}" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Meta}" FontSize="10" FontFamily="Consolas"
+                                                       Foreground="{ThemeResource DimTextBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <ListView x:Name="GitFilesList" SelectionMode="None" Visibility="Collapsed"
+                                      IsItemClickEnabled="True" ItemClick="OnGitFileClick"
+                                      Margin="-6,0,0,0">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:GitFileVM">
+                                        <Grid ColumnSpacing="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Padding="0,7">
+                                                <TextBlock Text="{x:Bind Title}" FontSize="13"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{x:Bind Detail}" FontSize="10" FontFamily="Consolas"
+                                                           Foreground="{ThemeResource DimTextBrush}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Content="±" FontSize="13" Padding="7,2"
+                                                    CornerRadius="4" VerticalAlignment="Center"
+                                                    Tag="{x:Bind}" Click="OnGitDiffClick"
+                                                    ToolTipService.ToolTip="Что изменилось в файле" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <TextBlock x:Name="GitHistoryEmptyText" Text="Коммитов пока нет"
+                                       Visibility="Collapsed" FontSize="12"
+                                       Foreground="{ThemeResource DimTextBrush}" Margin="0,4,0,0" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- Обратные ссылки -->
+                <Border Grid.Row="2" Margin="0,0,0,8"
+                        Background="{ThemeResource PaneBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1" CornerRadius="8">
+                    <Grid Padding="14,12,8,10" RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Ссылаются на этот файл" FontWeight="SemiBold" FontSize="13" />
+                        <Grid Grid.Row="1">
+                            <ListView x:Name="BacklinksList" SelectionMode="None"
+                                      IsItemClickEnabled="True" ItemClick="OnBacklinkClick"
+                                      Margin="-6,0,0,0">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BacklinkVM">
+                                        <StackPanel Padding="0,7">
+                                            <TextBlock Text="{x:Bind Title}" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Id}" FontSize="10" FontFamily="Consolas"
+                                                       Foreground="{ThemeResource DimTextBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <TextBlock x:Name="NoBacklinksText" Text="Нет входящих ссылок"
+                                       FontSize="12" Foreground="{ThemeResource DimTextBrush}"
+                                       Margin="0,4,0,0" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <!-- Битые ссылки: ссылка есть, а файла нет -->
+                <Border x:Name="BrokenLinksCard" Grid.Row="4" MaxHeight="260" Margin="0,0,0,8"
+                        Visibility="Collapsed"
+                        Background="{ThemeResource PaneBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1" CornerRadius="8">
+                    <Grid Padding="14,12,8,10" RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="BrokenLinksHeader" Text="Битые ссылки"
+                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Style="{StaticResource ToolIconButtonStyle}" Padding="6"
+                                    Click="OnBrokenLinksCloseClick" ToolTipService.ToolTip="Скрыть">
+                                <FontIcon Glyph="&#xE711;" FontSize="12" />
+                            </Button>
+                        </Grid>
+                        <ListView x:Name="BrokenLinksList" Grid.Row="1" SelectionMode="None"
+                                  IsItemClickEnabled="True" ItemClick="OnBrokenLinkClick"
+                                  Margin="-6,0,0,0">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BrokenLinkVM">
+                                    <StackPanel Padding="0,6">
+                                        <TextBlock Text="{x:Bind FileTitle}" FontSize="13"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Context}" FontSize="11"
+                                                   Foreground="{ThemeResource DimTextBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind TargetId}" FontSize="10" FontFamily="Consolas"
+                                                   Foreground="#FFFF6B6B" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </Border>
+
+                <!-- Файлы, на которые никто не ссылается -->
+                <Border Grid.Row="3" MaxHeight="300" Margin="0,0,0,8"
+                        Background="{ThemeResource PaneBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardBorderBrush}"
+                        BorderThickness="1" CornerRadius="8">
+                    <Grid Padding="14,12,8,10" RowSpacing="8">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Файлы без входящих ссылок" FontWeight="SemiBold" FontSize="13" />
+                        <Grid Grid.Row="1">
+                            <ListView x:Name="OrphansList" SelectionMode="None"
+                                      IsItemClickEnabled="True" ItemClick="OnBacklinkClick"
+                                      Margin="-6,0,0,0">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BacklinkVM">
+                                        <StackPanel Padding="0,7">
+                                            <TextBlock Text="{x:Bind Title}" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Id}" FontSize="10" FontFamily="Consolas"
+                                                       Foreground="{ThemeResource DimTextBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <TextBlock x:Name="NoOrphansText" Text="Нет таких файлов"
+                                       FontSize="12" Foreground="{ThemeResource DimTextBrush}"
+                                       Margin="0,4,0,0" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Заглушка, когда проект не выбран -->
+        <StackPanel x:Name="NoProjectPanel" Grid.Row="2" Spacing="14"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+            <FontIcon Glyph="&#xE8F1;" FontSize="42" Foreground="{ThemeResource DimTextBrush}"
+                      HorizontalAlignment="Center" />
+            <TextBlock Text="Проект не выбран" FontSize="16" HorizontalAlignment="Center" />
+            <TextBlock Text="Добавьте проект — название и путь к каталогу neurodoc."
+                       FontSize="12" Foreground="{ThemeResource DimTextBrush}" HorizontalAlignment="Center" />
+            <Button Content="Открыть список проектов" Click="OnProjectsClick"
+                    Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" />
+        </StackPanel>
+
+    </Grid>
+</Window>

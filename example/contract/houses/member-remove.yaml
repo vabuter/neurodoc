@@ -1,0 +1,47 @@
+# houses.member_remove — удалить участника из дома или выйти самому, одной операцией: owner удаляет любого,
+# любой участник — себя. Растения, задачи и журнал остаются дому, отметки ушедшего — с его именем. Последний owner
+# выйти не может, пока не передаст роль.
+
+operation: houses.member_remove
+kind: request
+transport: http
+http:
+  method: DELETE
+  path: /v1/houses/{house_id}/members/{account_id}
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Удалить участника из дома или выйти самому."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути
+  account_id:
+    type: id
+    required: true
+    desc: Кого удалить — параметр пути; свой id — выйти из дома
+
+response: {}   # пустой объект
+
+# Побочные эффекты: houses.changed со scope members остальным; удалённый помощник отпуска завершает отпуск —
+# напоминания сразу возвращаются всем, иначе они остались бы без получателя. Свой «Мой дом», где кроме
+# пользователя никого нет, покинуть нельзя тем же правилом last_owner: дом без участников некому вести.
+errors:
+  - code: last_owner
+    category: conflict
+    desc: Это единственный owner — сначала houses.member_update другому участнику
+  - code: forbidden
+    category: forbidden
+    desc: Не owner удаляет не себя
+  - code: not_found
+    category: not_found
+    desc: Такого участника в доме нет — уже вышел или удалён
+
+golden:
+  - name: ok
+    part: response
+    value: {}
+    json: '{}'

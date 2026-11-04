@@ -1,0 +1,62 @@
+# auth.totp_enable — включение второго фактора: код из приложения доказывает, что секрет сохранён и часы телефона
+# верны. В ответе 10 одноразовых кодов восстановления — показываются один раз, в базе только их SHA-256; без флажка
+# «Я сохранил коды» клиент шаг не закрывает. Сценарий — «Подключение второго фактора и коды восстановления».
+
+operation: auth.totp_enable
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/totp/enable
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: user
+summary: "Включение второго фактора кодом из приложения; выдаёт коды восстановления."
+
+request:
+  setup_id:
+    type: id
+    required: true
+    desc: Заготовка из auth.totp_setup
+  code:
+    type: string
+    required: true
+    desc: 6 цифр текущего шага, допуск ±1 шаг
+
+response:
+  recovery_codes:
+    type: list<string>
+    required: true
+    desc: 10 кодов XXXX-XXXX в Crockford Base32, каждый действует один раз; прежний набор, если был, гаснет
+
+errors:
+  - code: invalid_code
+    category: auth
+    desc: Код не подошёл — сессия жива; подсказка проверить время на телефоне
+  - code: setup_expired
+    category: conflict
+    desc: Заготовке больше 10 мин или её уже использовали — начать с auth.totp_setup
+
+golden:
+  - name: request
+    part: request
+    value:
+      setup_id: 01a27929-ce40-791e-b635-87202948966b
+      code: "394712"
+    json: '{"code":"394712","setup_id":"01a27929-ce40-791e-b635-87202948966b"}'
+  - name: ok
+    part: response
+    value:
+      recovery_codes:
+        - SZ7V-ZSGT
+        - Y1E8-36VY
+        - 9YE7-XYGS
+        - KYSV-CJH0
+        - 29XZ-QCGZ
+        - XZV2-JMX6
+        - WGWB-VY4H
+        - ZQ6C-T9W0
+        - 50W5-CF72
+        - HP90-MZ8E
+    json: '{"recovery_codes":["SZ7V-ZSGT","Y1E8-36VY","9YE7-XYGS","KYSV-CJH0","29XZ-QCGZ","XZV2-JMX6","WGWB-VY4H","ZQ6C-T9W0","50W5-CF72","HP90-MZ8E"]}'

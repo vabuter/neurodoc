@@ -1,0 +1,33 @@
+<svg class="bpmn" viewBox="0 0 1240 640" role="img" aria-label="BPMN: Включение режима обслуживания">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема к разделу админки [о логах и режиме обслуживания](394832b4-8db5-40fe-8c79-919df1518b0b) и к описанию [режима обслуживания](23f1e856-85b0-4501-a8e9-fbc8c6999b6a); nginx отдаёт [страницу обслуживания](44ac5d9b-badb-453c-a2e1-f841f87f99e7). Операции: [admin.maintenance](../contract/admin/maintenance.yaml), [system.maintenance](../contract/system/maintenance.yaml), [system.config](../contract/system/config.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1220" height="620"/><path d="M10 120H1230M10 220H1230M10 420H1230M10 520H1230M118 10V630"/></g>
+<g class="lane-title"><text x="64" y="69">Администратор</text><text x="64" y="174">Админка</text><text x="64" y="316.5">Сервер<tspan x="64" dy="15">(fikus-api)</tspan></text><text x="64" y="474">Nginx</text><text x="64" y="579">Клиенты</text></g>
+<g class="flow"><path d="M200 65H280"/><path d="M300 85V147"/><path d="M300 193V210"/><path d="M300 230V272"/><path d="M190 295H235"/><path d="M365 295H400"/><path d="M420 315V435"/><path d="M440 295H510"/><path d="M495 470H525"/><path d="M590 337V540"/><path d="M670 575H700"/><path d="M320 65H860V210"/><path d="M860 230V272"/><path d="M860 318V510"/><path d="M860 530V565"/><path d="M955 65H1030V210"/><path d="M1030 230V272"/><path d="M1030 318V510"/><path d="M1030 530V570"/><path d="M1081 580H1135"/></g>
+<g class="task"><rect x="225" y="147" width="150" height="46" rx="7"/><rect x="510" y="540" width="160" height="70" rx="7"/></g>
+<g class="sys"><rect x="235" y="272" width="130" height="46" rx="7"/><rect x="345" y="435" width="150" height="70" rx="7"/><rect x="510" y="253" width="160" height="84" rx="7"/><rect x="805" y="272" width="110" height="46" rx="7"/><rect x="965" y="272" width="130" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="236" y="210" width="128" height="20" rx="4"/><rect x="796" y="210" width="128" height="20" rx="4"/><rect x="792.5" y="510" width="135" height="20" rx="4"/><rect x="966" y="210" width="128" height="20" rx="4"/><rect x="962.5" y="510" width="135" height="20" rx="4"/><rect x="979" y="570" width="102" height="20" rx="4"/></g>
+<g class="gw"><path d="M300 45l20 20-20 20-20-20zM420 275l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="185" cy="65" r="15"/><circle cx="175" cy="295" r="15"/><circle cx="940" cy="65" r="15"/></g>
+<g class="ev-end"><circle cx="540" cy="470" r="15"/><circle cx="715" cy="575" r="15"/><circle cx="860" cy="580" r="15"/><circle cx="1150" cy="580" r="15"/></g>
+<g class="gwsym"><path d="M294 59l12 12m0-12l-12 12M420 287v16m-8-8h16"/></g>
+<g class="nt"><text x="185" y="29">нужно обслуживание<tspan x="185" dy="14">(миграция, авария)</tspan></text><text x="300" y="37">какой режим?</text><text x="300" y="167">Подтвердить словом<tspan x="300" dy="15">«обслуживание»</tspan></text><text x="300" y="292">/var/lib/fikus/<tspan x="300" dy="15">maintenance.flag</tspan></text><text x="175" y="324">деплой:<tspan x="175" dy="14">скрипт ставит</tspan><tspan x="175" dy="14">флаг сам</tspan><tspan x="175" dy="14">(fikus-api</tspan><tspan x="175" dy="14">может стоять)</tspan></text><text x="420" y="267">одновременно</text><text x="420" y="452">fikus.example и<tspan x="420" dy="15">app.fikus.example:</tspan><tspan x="420" dy="15">503 и страница</tspan><tspan x="420" dy="15">обслуживания</tspan></text><text x="540" y="499">сайт закрыт</text><text x="590" y="269">Problem maintenance<tspan x="590" dy="15">(unavailable,</tspan><tspan x="590" dy="15">retry_after) на всё,</tspan><tspan x="590" dy="15">кроме system.config,</tspan><tspan x="590" dy="15">auth.* и admin.*</tspan></text><text x="590" y="557">Android: экран<tspan x="590" dy="15">«Технические работы»,</tspan><tspan x="590" dy="15">повтор через</tspan><tspan x="590" dy="15">retry_after</tspan></text><text x="860" y="292">Запись<tspan x="860" dy="15">в settings</tspan></text><text x="940" y="29">работы<tspan x="940" dy="14">закончены</tspan></text><text x="1030" y="292">Удалить флаг,<tspan x="1030" dy="15">settings: off</tspan></text><text x="1150" y="544">работа<tspan x="1150" dy="14">восстановлена</tspan></text><g text-anchor="start"><text x="736" y="572">до<tspan x="736" dy="14">выключения</tspan></text><text x="881" y="577">баннер<tspan x="881" dy="14">в клиентах</tspan></text></g></g>
+<g class="chip-label"><text x="300" y="224">admin.maintenance</text><text x="860" y="224">admin.maintenance</text><text x="860" y="524">system.maintenance</text><text x="1030" y="224">admin.maintenance</text><text x="1030" y="524">system.maintenance</text><text x="1030" y="584">system.config</text></g>
+<g class="lbl"><text x="306" y="110">full</text><text x="306" y="247">mode full</text><text x="330" y="57">banner</text><text x="866" y="247">mode banner</text><text x="1036" y="247">mode off</text><text x="1036" y="552">перезапрос</text></g>
+</svg>

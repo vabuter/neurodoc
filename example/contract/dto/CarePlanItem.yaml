@@ -1,0 +1,61 @@
+# CarePlanItem — пункт плана ухода: база вида, применённые множители и итоговый интервал. Множители приходят
+# готовыми, клиент их только пишет словами («зима ×1,5 · керамика ×1,1 · яркий свет ×0,9 → раз в 10 дней»):
+# считает план один сервер, поэтому веб, Android и iOS не расходятся в датах.
+
+dto: CarePlanItem
+status: live
+since: v1
+clients: [app, android, server]
+summary: "Пункт плана: интервал, ближайшая дата и множители «почему так»."
+
+fields:
+  kind:
+    type: string
+    required: true
+    enum: [water, feed, mist, repot, rotate]
+  base_days:
+    type: int
+    required: true
+    desc: База из профиля вида в днях; у пересадки repot_months × 365 / 12 — 24 месяца дают 730
+  factors:
+    type: map<string,int>
+    required: true
+    desc: >-
+      Применённые множители в целых процентах, 100 — без поправки: у полива season, pot, light и drainage
+      (только когда дренажа нет — 120), у подкормки и опрыскивания season, у поворота и пересадки пусто.
+      На паузе тоже пусто — множить нечего. Ключ, которого клиент не знает, он показывает как есть
+  interval_days:
+    type: int
+    required: true
+    desc: >-
+      round(base_days × Π(множитель / 100)) в целой арифметике, половина вверх, — дробей нет и в расчёте;
+      полив ограничен 1–60 днями. На паузе — база без множителей
+  next_due_at:
+    type: time
+    desc: Срок открытой задачи этого вида — начало утреннего окна дома в её день; на паузе winter_rest поля нет
+  paused:
+    type: bool
+    required: true
+    desc: Задача сейчас не назначается или отодвинута — причина в pause_reason
+  pause_reason:
+    type: string
+    enum: [winter_rest, sensor_wet]
+    desc: >-
+      winter_rest — зимний покой подкормки, до весны; sensor_wet — в день полива датчик показал землю влажнее
+      moisture_max, полив перенесён на день (next_due_at — завтра), но не больше 3 раз подряд
+  adjusted_by_sensor:
+    type: bool
+    required: true
+    desc: true — срок полива сдвинул датчик (земля пересохла раньше расписания или ещё влажная)
+
+golden:
+  - name: water_winter
+    value:
+      kind: water
+      base_days: 7
+      factors: {season: 150, pot: 110, light: 90}
+      interval_days: 10
+      next_due_at: "2026-12-19T05:00:00.000Z"
+      paused: false
+      adjusted_by_sensor: false
+    json: '{"adjusted_by_sensor":false,"base_days":7,"factors":{"light":90,"pot":110,"season":150},"interval_days":10,"kind":"water","next_due_at":"2026-12-19T05:00:00.000Z","paused":false}'

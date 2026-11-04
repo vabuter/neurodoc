@@ -1,0 +1,95 @@
+# care.complete — выполнить задачу ухода, в том числе задним числом до 72 ч. Двое нажали «Полито» одновременно —
+# второй получает не отказ, а исход already_done с именем первого: двойного полива нет. Идемпотентна по
+# Idempotency-Key — офлайн-очередь досылает отметки сколько угодно раз. Сценарий — «Выполнение задачи ухода».
+
+operation: care.complete
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/tasks/{task_id}/complete
+  idempotency_key: true      # ключ создаётся на одно нажатие «Полито», а не на попытку отправки
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Выполнить задачу ухода; можно задним числом до 72 ч."
+
+request:
+  task_id:
+    type: id
+    required: true
+    desc: Задача — параметр пути; выполнить может любой участник дома, и helper тоже
+  done_at:
+    type: time
+    desc: >-
+      Когда сделано на самом деле — «полили вечером, отметили утром»; по умолчанию момент приёма. Офлайн-очередь
+      шлёт момент нажатия. Не раньше чем за 72 ч и не позже текущего момента
+  note:
+    type: string
+    desc: Заметка в журнал, до 500 символов
+  amount_ml:
+    type: int
+    desc: Объём полива 1–5000 мл — только у water
+  photo_id:
+    type: id
+    desc: Фото этого растения, загруженное через photos.upload_url и photos.confirm, — встанет в журнал рядом с отметкой
+
+# Следующая задача считается от done_at: полили на два дня позже — и следующий полив позже, иначе вода придёт
+# слишком скоро. Только что пропущенную задачу выполнить можно: факт полива важнее пропуска.
+response:
+  state:
+    type: string
+    required: true
+    enum: [done, already_done]
+    desc: done — отметка принята; already_done — задачу уже выполнил другой участник, второй записи в журнале нет
+  task:
+    type: CareTask
+    required: true
+    desc: Задача в состоянии done — с resolved_at и resolved_by того, кто выполнил первым
+  next_task:
+    type: CareTask
+    desc: >-
+      Только при done — следующая задача того же вида; нет, если вид на паузе. При already_done её создало
+      чужое выполнение, и клиент получит её вместе с обновлённым списком
+  done_by_name:
+    type: string
+    desc: Только при already_done — имя выполнившего; клиент пишет «Борис уже полил в 08:12» по поясу дома
+
+# Остальным участникам — houses.changed со scope tasks.
+errors:
+  - code: task_closed
+    category: conflict
+    desc: Задачу закрыл пересчёт плана или архивация растения — клиент пишет «Задачу уже пересчитали» и обновляет список
+  - code: done_at_too_old
+    category: validation
+    desc: done_at раньше чем за 72 ч — «Задним числом можно отметить не больше чем за 72 часа»
+  - code: invalid_fields
+    category: validation
+    fields:
+      done_at: [out_of_range]           # из будущего
+      note: [too_long]
+      amount_ml: [out_of_range]
+      photo_id: [not_allowed]           # фото другого растения или не подтверждено
+
+# 19 декабря Борис поливает Бенджи в 08:12 по Москве, через три минуты то же пытается отметить Анна.
+golden:
+  - name: request
+    part: request
+    value:
+      amount_ml: 300
+    json: '{"amount_ml":300}'
+  - name: done
+    part: response
+    value:
+      state: done
+      task: {id: 01a25957-8a8b-710e-9089-a2aa8c841494, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: water, due_at: "2026-12-19T05:00:00.000Z", state: done, resolved_at: "2026-12-19T05:12:07.344Z", resolved_by: 01a0caa1-e44f-77de-a33d-1d51c776de69}
+      next_task: {id: 01a28cb6-e9b7-7651-95a3-a55a5bfba1ec, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: water, due_at: "2026-12-29T05:00:00.000Z", state: open}
+    json: '{"next_task":{"due_at":"2026-12-29T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a28cb6-e9b7-7651-95a3-a55a5bfba1ec","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"},"state":"done","task":{"due_at":"2026-12-19T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a25957-8a8b-710e-9089-a2aa8c841494","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","resolved_at":"2026-12-19T05:12:07.344Z","resolved_by":"01a0caa1-e44f-77de-a33d-1d51c776de69","state":"done"}}'
+  - name: already_done
+    part: response
+    value:
+      state: already_done
+      task: {id: 01a25957-8a8b-710e-9089-a2aa8c841494, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: water, due_at: "2026-12-19T05:00:00.000Z", state: done, resolved_at: "2026-12-19T05:12:07.344Z", resolved_by: 01a0caa1-e44f-77de-a33d-1d51c776de69}
+      done_by_name: Борис
+    json: '{"done_by_name":"Борис","state":"already_done","task":{"due_at":"2026-12-19T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a25957-8a8b-710e-9089-a2aa8c841494","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","resolved_at":"2026-12-19T05:12:07.344Z","resolved_by":"01a0caa1-e44f-77de-a33d-1d51c776de69","state":"done"}}'

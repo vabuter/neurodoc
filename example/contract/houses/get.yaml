@@ -1,0 +1,55 @@
+# houses.get — дом целиком: настройки, участники с ролями и сроками доступа, отпуск. Единственная операция,
+# которая отдаёт участников: экраны «Участники» и «Отпуск» строятся из неё, а остальным экранам список людей
+# не нужен. Права ролей — «Дом и роли участников».
+
+operation: houses.get
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/houses/{house_id}
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Дом целиком: настройки, участники, отпуск."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути; читать может любой участник, помощник тоже
+
+response: House      # с members по joined_at и полями vacation_*, если отпуск запланирован или идёт
+
+errors:
+  - code: not_found
+    category: not_found
+    desc: Дома нет
+  - code: forbidden
+    category: forbidden
+    desc: Пользователь в доме не состоит — например, у помощника кончился access_until
+
+# 20 декабря после 16:31: трое участников, Вера — помощник до 14 января, отпуск с 30 декабря по 13 января.
+golden:
+  - name: with_vacation
+    part: response
+    value:
+      id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      name: Квартира на Лесной
+      time_zone: Europe/Moscow
+      hemisphere: north
+      morning_window_start: "08:00"
+      morning_window_end: "10:00"
+      my_role: owner
+      members:
+        - {account_id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b, display_name: Анна, role: owner, joined_at: "2026-09-20T17:05:11.284Z"}
+        - {account_id: 01a0caa1-e44f-77de-a33d-1d51c776de69, display_name: Борис, role: member, joined_at: "2026-09-22T19:44:37.618Z"}
+        - {account_id: 01a2943a-0517-7033-93c0-609f8dec0e5a, display_name: Вера, role: helper, access_until: "2027-01-14T05:00:00.000Z", joined_at: "2026-12-20T16:20:05.331Z"}
+      vacation_helper_id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+      vacation_starts_at: "2026-12-30T05:00:00.000Z"
+      vacation_ends_at: "2027-01-13T05:00:00.000Z"
+      plants_count: 4
+      sensors_count: 3
+      created_at: "2026-09-20T17:05:11.284Z"
+    json: '{"created_at":"2026-09-20T17:05:11.284Z","hemisphere":"north","id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","members":[{"account_id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","display_name":"Анна","joined_at":"2026-09-20T17:05:11.284Z","role":"owner"},{"account_id":"01a0caa1-e44f-77de-a33d-1d51c776de69","display_name":"Борис","joined_at":"2026-09-22T19:44:37.618Z","role":"member"},{"access_until":"2027-01-14T05:00:00.000Z","account_id":"01a2943a-0517-7033-93c0-609f8dec0e5a","display_name":"Вера","joined_at":"2026-12-20T16:20:05.331Z","role":"helper"}],"morning_window_end":"10:00","morning_window_start":"08:00","my_role":"owner","name":"Квартира на Лесной","plants_count":4,"sensors_count":3,"time_zone":"Europe/Moscow","vacation_ends_at":"2027-01-13T05:00:00.000Z","vacation_helper_id":"01a2943a-0517-7033-93c0-609f8dec0e5a","vacation_starts_at":"2026-12-30T05:00:00.000Z"}'

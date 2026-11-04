@@ -1,0 +1,73 @@
+# AdminUser — пользователь глазами администратора: статус, роль и счётчики без личного содержимого — растений,
+# журналов и фото админка не видит. Отдают admin.users и admin.user_update; draft вместе с админкой.
+
+dto: AdminUser
+status: draft
+since: v1
+clients: [admin, server]
+summary: "Пользователь глазами администратора: статус и счётчики без личного содержимого."
+
+fields:
+  id:
+    type: id
+    required: true
+  email:
+    type: string
+    required: true
+    desc: Адрес входа — по его началу ищет admin.users
+  display_name:
+    type: string
+    required: true
+  status:
+    type: string
+    required: true
+    enum: [active, unconfirmed, pending_deletion, blocked]
+    desc: unconfirmed — адрес не подтверждён; pending_deletion — идут 14 дней до удаления; blocked — заблокирован администратором
+  role:
+    type: string
+    required: true
+    enum: [user, admin]
+  created_at:
+    type: time
+    required: true
+  last_seen_at:
+    type: time
+    desc: Последний запрос любой сессии; поля нет, если пользователь ещё не входил
+  houses_count:
+    type: int
+    required: true
+    desc: Домов, где пользователь участник в любой роли
+  plants_count:
+    type: int
+    required: true
+    desc: Растений во всех его домах, без архивных
+  sensors_count:
+    type: int
+    required: true
+    desc: Датчиков во всех его домах
+  totp_enabled:
+    type: bool
+    required: true
+  blocked_reason:
+    type: string
+    desc: Только при blocked — причина, которую указал администратор; пользователю экран её не показывает
+  trace_until:
+    type: time
+    desc: Только пока включена трассировка — когда она выключится сама
+
+golden:
+  - name: blocked
+    value:
+      id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+      email: vera@example.com
+      display_name: Вера
+      status: blocked
+      role: user
+      created_at: "2026-12-20T16:12:40.087Z"
+      last_seen_at: "2027-02-08T21:14:05.902Z"
+      houses_count: 2
+      plants_count: 9
+      sensors_count: 2
+      totp_enabled: false
+      blocked_reason: "По просьбе владелицы: украден телефон с открытой сессией, до сброса пароля"
+    json: '{"blocked_reason":"По просьбе владелицы: украден телефон с открытой сессией, до сброса пароля","created_at":"2026-12-20T16:12:40.087Z","display_name":"Вера","email":"vera@example.com","houses_count":2,"id":"01a2943a-0517-7033-93c0-609f8dec0e5a","last_seen_at":"2027-02-08T21:14:05.902Z","plants_count":9,"role":"user","sensors_count":2,"status":"blocked","totp_enabled":false}'

@@ -1,0 +1,72 @@
+# admin.build — раздел «Сборка»: что сейчас на проде. Версия схемы БД сравнивается с последней миграцией, известной
+# бинарнику: расхождение админка показывает красным. Общие отказы admin.* — в admin.overview.
+# Схемы нет: это чтение для раздела «Сборка», описанного вместе с флагами функций.
+
+operation: admin.build
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/admin/build
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Что сейчас на проде: версия, коммит, схема БД, флаги."
+
+request: {}
+
+response:
+  version:
+    type: string
+    required: true
+    desc: Тег релиза vX.Y.Z, из которого собран fikus-api
+  commit:
+    type: string
+    required: true
+    desc: Короткий хэш коммита в main
+  built_at:
+    type: time
+    required: true
+  deployed_at:
+    type: time
+    required: true
+    desc: Когда ссылка /opt/fikus/bin/fikus-api переключена на этот релиз
+  go_version:
+    type: string
+    required: true
+  schema_version:
+    type: int
+    required: true
+    desc: Последняя применённая миграция в базе
+  schema_latest:
+    type: int
+    required: true
+    desc: Последняя миграция, известная бинарнику
+  uptime:
+    type: duration
+    required: true
+    desc: Секунды с запуска процесса
+  flags:
+    type: map<string,bool>
+    required: true
+    desc: Все флаги функций — и клиентские, и серверные; сервер перечитывает их из таблицы settings раз в 30 с
+
+golden:
+  - name: ok
+    part: response
+    value:
+      version: v0.9.0
+      commit: 8d41c0f2a9e3
+      built_at: "2026-12-14T15:02:37.000Z"
+      deployed_at: "2026-12-14T15:20:11.000Z"
+      go_version: go1.23.4
+      schema_version: 27
+      schema_latest: 27
+      uptime: 66000
+      flags:
+        species_suggestions: true
+        sensor_pairing_web: false
+        digest_email: true
+        ios_beta: false
+    json: '{"built_at":"2026-12-14T15:02:37.000Z","commit":"8d41c0f2a9e3","deployed_at":"2026-12-14T15:20:11.000Z","flags":{"digest_email":true,"ios_beta":false,"sensor_pairing_web":false,"species_suggestions":true},"go_version":"go1.23.4","schema_latest":27,"schema_version":27,"uptime":66000,"version":"v0.9.0"}'

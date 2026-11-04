@@ -1,0 +1,67 @@
+# plants.get — карточка растения целиком: свойства, план с множителями для «Почему так», все фото, ближайшие
+# задачи и датчик. Полный зимний ответ с фото и датчиком — JSON-пример каталога «полный ответ plants.get»;
+# golden здесь сокращённый: тот же Бенджи 1 ноября, осенью, до датчика и первого фото.
+
+operation: plants.get
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/plants/{plant_id}
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Карточка растения целиком: план, фото, ближайшие задачи, датчик."
+
+request:
+  plant_id:
+    type: id
+    required: true
+    desc: Растение — параметр пути; архивное тоже открывается, только для чтения
+
+# Ответ — Plant в самой полной форме: plan есть всегда, photos — всегда (до 20, пустой список — фото нет),
+# next_tasks — до 5 на ближайшие 7 дней. Журнал сюда не входит: он растёт без предела и листается care.log.
+response: Plant
+
+errors:
+  - code: not_found
+    category: not_found
+    desc: Растения нет или оно в доме, которого больше нет
+  - code: forbidden
+    category: forbidden
+    desc: Растение в доме, где пользователь не состоит
+
+golden:
+  - name: benji_autumn
+    part: response
+    value:
+      id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      species_id: 019fc710-e100-7448-a192-990183571c83
+      species_name: Фикус Бенджамина
+      custom_species: false
+      nickname: Бенджи
+      pot_material: ceramic
+      pot_diameter_cm: 18
+      pot_drainage: true
+      soil: universal
+      location_room: гостиная
+      window: east
+      light: bright
+      photos: []
+      plan:
+        plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+        season: autumn
+        computed_at: "2026-10-31T06:05:33.126Z"
+        items:
+          - {kind: water, base_days: 7, factors: {season: 120, pot: 110, light: 90}, interval_days: 8, next_due_at: "2026-11-07T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+          - {kind: feed, base_days: 14, factors: {season: 150}, interval_days: 21, next_due_at: "2026-11-15T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+          - {kind: mist, base_days: 4, factors: {season: 100}, interval_days: 4, next_due_at: "2026-11-04T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+          - {kind: repot, base_days: 730, factors: {}, interval_days: 730, next_due_at: "2028-10-03T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+          - {kind: rotate, base_days: 14, factors: {}, interval_days: 14, next_due_at: "2026-11-12T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+      next_tasks:
+        - {id: 01a19090-3840-75ca-95a4-f32fc4745c26, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: mist, due_at: "2026-11-04T05:00:00.000Z", state: open}
+        - {id: 01a18b4a-8bb0-7dad-bede-b5cfeeab154a, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: water, due_at: "2026-11-07T05:00:00.000Z", state: open}
+      created_at: "2026-10-04T12:31:47.090Z"
+    json: '{"created_at":"2026-10-04T12:31:47.090Z","custom_species":false,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","light":"bright","location_room":"гостиная","next_tasks":[{"due_at":"2026-11-04T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a19090-3840-75ca-95a4-f32fc4745c26","kind":"mist","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"},{"due_at":"2026-11-07T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a18b4a-8bb0-7dad-bede-b5cfeeab154a","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"}],"nickname":"Бенджи","photos":[],"plan":{"computed_at":"2026-10-31T06:05:33.126Z","items":[{"adjusted_by_sensor":false,"base_days":7,"factors":{"light":90,"pot":110,"season":120},"interval_days":8,"kind":"water","next_due_at":"2026-11-07T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":14,"factors":{"season":150},"interval_days":21,"kind":"feed","next_due_at":"2026-11-15T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":4,"factors":{"season":100},"interval_days":4,"kind":"mist","next_due_at":"2026-11-04T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":730,"factors":{},"interval_days":730,"kind":"repot","next_due_at":"2028-10-03T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":14,"factors":{},"interval_days":14,"kind":"rotate","next_due_at":"2026-11-12T05:00:00.000Z","paused":false}],"plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","season":"autumn"},"pot_diameter_cm":18,"pot_drainage":true,"pot_material":"ceramic","soil":"universal","species_id":"019fc710-e100-7448-a192-990183571c83","species_name":"Фикус Бенджамина","window":"east"}'

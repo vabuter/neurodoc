@@ -1,0 +1,46 @@
+# Операции API и DTO: авторизация и аккаунт
+
+Доменная часть [реестра операций API](46a3b885-d219-41b0-9e37-648a0f894800): все операции авторизации и аккаунта с правами и исходами. Почему они устроены так — в [концепции авторизации](5431d295-2fe7-4960-bad9-30da619e7b7f).
+
+## Операции
+
+| Операция | Метод и путь | Авторизация | Что делает | Состояния state и коды ошибок |
+|---|---|---|---|---|
+| [auth.start](../contract/auth/start.yaml) | POST /v1/auth/start | none | Начало входа или регистрации по адресу: identifier-first, ответ одинаков для любых адресов. | ok, challenge; invalid_email, challenge_invalid (validation); rate_limited (rate_limit) |
+| [auth.login](../contract/auth/login.yaml) | POST /v1/auth/login | none | Вход по паролю в рамках flow. | signed_in, totp_required, email_unconfirmed; invalid_credentials, flow_expired (auth); account_blocked (forbidden); rate_limited (rate_limit) |
+| [auth.register](../contract/auth/register.yaml) | POST /v1/auth/register | none | Регистрация в рамках flow; ответ одинаков для свободного и занятого адреса. | check_email; too_short, common_password, invalid_format, required (validation, в fields); flow_expired (auth); rate_limited (rate_limit) |
+| [auth.confirm_email](../contract/auth/confirm-email.yaml) | POST /v1/auth/confirm-email | none | Подтверждение адреса по токену из письма и вход. | signed_in; link_expired (conflict); link_invalid (not_found) |
+| [auth.reset_request](../contract/auth/reset-request.yaml) | POST /v1/auth/reset | none | Запрос письма для сброса пароля; ответ одинаков для любых адресов. | check_email; flow_expired (auth); rate_limited (rate_limit, 3 письма на адрес в час) |
+| [auth.reset_complete](../contract/auth/reset-complete.yaml) | POST /v1/auth/reset/complete | none | Новый пароль по токену из письма; отзывает все сессии и входит. | signed_in, totp_required; link_expired (conflict); link_invalid (not_found); common_password, too_short (validation) |
+| [auth.totp_verify](../contract/auth/totp-verify.yaml) | POST /v1/auth/totp/verify | none | Второй шаг входа: код TOTP или код восстановления. | signed_in; invalid_code, code_reused, flow_expired (auth); rate_limited (rate_limit, 5 попыток на flow) |
+| [auth.refresh](../contract/auth/refresh.yaml) | POST /v1/auth/refresh | none | Обновление пары токенов с ротацией refresh-токена. | signed_in; refresh_invalid, refresh_reused (auth) |
+| [auth.logout](../contract/auth/logout.yaml) | POST /v1/auth/logout | user | Выход: отзыв текущей сессии. | — |
+| [auth.sessions](../contract/auth/sessions.yaml) | GET /v1/auth/sessions | user | Сессии аккаунта — вошедшие устройства, свежие сверху. | — |
+| [auth.session_revoke](../contract/auth/session-revoke.yaml) | DELETE /v1/auth/sessions/{session_id} | user | Отзыв другой сессии аккаунта. | not_found; use_logout (validation) |
+| [auth.totp_setup](../contract/auth/totp-setup.yaml) | POST /v1/auth/totp/setup | user | Заготовка второго фактора: секрет и otpauth-ссылка для QR. | invalid_credentials (auth); totp_already_enabled (conflict) |
+| [auth.totp_enable](../contract/auth/totp-enable.yaml) | POST /v1/auth/totp/enable | user | Включение второго фактора кодом из приложения; выдаёт коды восстановления. | invalid_code (auth); setup_expired (conflict) |
+| [auth.totp_disable](../contract/auth/totp-disable.yaml) | POST /v1/auth/totp/disable | user | Отключение второго фактора. | invalid_credentials, invalid_code (auth); admin_totp_required (forbidden) |
+| [account.get](../contract/account/get.yaml) | GET /v1/me | user | Профиль текущего аккаунта. | — |
+| [account.update](../contract/account/update.yaml) | PATCH /v1/me | user | Изменение профиля и настроек уведомлений. | invalid_format у time_zone и quiet_hours_* (validation) |
+| [account.delete](../contract/account/delete.yaml) | POST /v1/me/delete | user | Удаление аккаунта с отсрочкой 14 дней. | invalid_credentials, invalid_code (auth); totp_code_required (validation) |
+| [account.push_token](../contract/account/push-token.yaml) | PUT /v1/me/push-token | user | Регистрация токена мобильного пуша для текущей сессии. | — |
+
+## Push-событие
+
+| Событие | Канал | Кому | Что делает | Причины reason |
+|---|---|---|---|---|
+| [auth.session_revoked](../contract/auth/session-revoked.yaml) | WebSocket /v1/push | только отозванная сессия | Сессия отозвана — клиент обязан выйти и показать причину. | revoked_by_user, refresh_reused, password_reset, account_deleted, blocked; после кадра сервер закрывает соединение кодом 4401 |
+
+## DTO
+
+| DTO | Назначение | Где используется |
+|---|---|---|
+| [Account](../contract/dto/Account.yaml) | Аккаунт пользователя глазами самого пользователя. | account.get, account.update, поле account в AuthResult |
+| [Session](../contract/dto/Session.yaml) | Сессия — вошедшее устройство. | auth.sessions |
+| [AuthResult](../contract/dto/AuthResult.yaml) | Результат шага входа: токены или следующий шаг. | auth.login, auth.confirm_email, auth.reset_complete, auth.totp_verify, auth.refresh |
+| [Problem](../contract/dto/Problem.yaml) | Тело любого отказа. | все операции |
+| [FieldProblem](../contract/dto/FieldProblem.yaml) | Ошибка одного поля запроса. | поле fields в Problem: auth.register, auth.reset_complete, account.update |
+
+Операции входа отвечают одинаково по содержанию и по времени независимо от того, есть ли аккаунт с адресом: auth.start, auth.register и auth.reset_request — всегда одним и тем же state, а отказ auth.login для несуществующего адреса неотличим от неверного пароля; разница видна только в почтовом ящике. Лимиты и вычислительная задача — в файле [защита от ботов и лимиты частоты](d5d15aca-72ab-4733-828c-2fb1e561460d).
+
+Общие отказы token_expired и session_revoked (категория auth) в таблице не повторяются: их может вернуть любая операция с авторизацией user, и токен клиент обновляет только по token_expired. auth.reset_request объявлен с авторизацией none, но из настроек вызывается с access-токеном и без flow_id — так на MVP меняется пароль (ADR-013).

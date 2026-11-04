@@ -1,0 +1,85 @@
+<!-- Fikus: страница обслуживания — /var/www/fikus/status/maintenance.html -->
+<!-- Каталог: [как включается режим](23f1e856-85b0-4501-a8e9-fbc8c6999b6a), [правила nginx — в схеме маршрутизации](68b008e0-9c52-4b07-88cf-0ced889407b5), [логотип](../design/logo.svg).
+     nginx отдаёт страницу с кодом 503, даже когда fikus-api остановлен, поэтому всё внутри: стили, скрипт, логотип. Цвета — из [дизайн-токенов](../design/tokens.json). -->
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="120">
+<title>Fikus на обслуживании</title>
+<style>
+  :root { color-scheme: light dark; --paper: #f7f5ef; --surface: #ffffff; --ink: #1f2a24; --muted: #5b6b61; --leaf: #2f7d4f; }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper: #121714; --surface: #1b221e; --ink: #e6ece8; --muted: #9aaba1; --leaf: #6fbf8b; }
+  }
+  body { margin: 0; min-block-size: 100vh; display: grid; place-items: center; background: var(--paper); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
+  main { box-sizing: border-box; inline-size: min(100% - 32px, 30rem); padding-block: 32px; padding-inline: 24px; background: var(--surface); border-radius: 12px; text-align: center; }
+  svg { inline-size: 64px; block-size: 64px; }
+  h1 { font-size: 24px; margin-block: 16px 8px; }
+  p { margin-block: 8px 0; color: var(--muted); }
+  #note { color: var(--ink); }
+  a { color: var(--leaf); }
+</style>
+</head>
+<body>
+<main>
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="32" r="31" fill="#f7f5ef"/>
+    <g transform="translate(27 47) rotate(40)">
+      <path d="M0 0C-11-5-15-17-13-26C-11-33-5-37 0-42C5-37 11-33 13-26C15-17 11-5 0 0Z" fill="#2f7d4f"/>
+      <path d="M0 0C11-5 15-17 13-26C11-33 5-37 0-42Z" fill="#22603c"/>
+      <g fill="none" stroke="#f7f5ef" stroke-linecap="round">
+        <path d="M0-3V-37" stroke-width="1.8"/>
+        <path d="M0-11L-7-17M0-11L7-17M0-21L-6-27M0-21L6-27" stroke-width="1.3"/>
+      </g>
+      <path d="M0 0V7" fill="none" stroke="#22603c" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+    <path d="M16 37C19 41 21 44 21 46.5A5 5 0 0 1 11 46.5C11 44 13 41 16 37Z" fill="#8a5a3c"/>
+    <ellipse cx="14" cy="46" rx="1.2" ry="2" fill="#f7f5ef" opacity="0.45"/>
+  </svg>
+  <h1 data-t="title">Fikus на обслуживании</h1>
+  <p data-t="lead">Растения подождут: напоминания придут после работ.</p>
+  <p id="note" hidden></p>
+  <p><span data-t="ask">Вопросы — на</span> <a href="mailto:support@fikus.example">support@fikus.example</a></p>
+</main>
+<script>
+  const texts = {
+    ru: { title: 'Fikus на обслуживании', lead: 'Растения подождут: напоминания придут после работ.', ask: 'Вопросы — на', until: 'Планируем закончить к ' },
+    en: { title: 'Fikus is under maintenance', lead: 'Your plants can wait: reminders will arrive once maintenance is over.', ask: 'Questions:', until: 'We plan to finish by ' }
+  };
+  const lang = navigator.language.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  const t = texts[lang];
+  document.documentElement.lang = lang;
+  document.title = t.title;
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t[el.dataset.t];
+
+  const note = document.getElementById('note');
+  // Адрес API — из адреса страницы: fikus.example и app.fikus.example опрашивают api.fikus.example,
+  // app.stage.fikus.example — api.stage.fikus.example; с зашитым адресом стенд ходил бы в прод
+  const configUrl = location.protocol + '//api.' + location.hostname.replace(/^app\./, '') + '/v1/config';
+  // system.config отвечает и в режиме full; не full — работы кончились, nginx уже отдаёт сайт
+  async function poll() {
+    try {
+      const res = await fetch(configUrl, { cache: "no-store" });
+      if (!res.ok) return; // 503 api_unavailable: fikus-api ещё не поднялся, ждём дальше
+      const cfg = await res.json();
+      if (cfg.maintenance_mode !== 'full') { location.reload(); return; }
+      const parts = [];
+      if (cfg.maintenance_message) parts.push(cfg.maintenance_message);
+      if (cfg.maintenance_until) {
+        const at = new Date(cfg.maintenance_until);
+        parts.push(t.until + at.toLocaleString(lang, { dateStyle: 'medium', timeStyle: 'short' }));
+      }
+      note.textContent = parts.join(' ');
+      note.hidden = parts.length === 0;
+    } catch (e) {
+      // нет сети — попробуем через 30 с
+    }
+  }
+  poll();
+  setInterval(poll, 30000);
+</script>
+</body>
+</html>

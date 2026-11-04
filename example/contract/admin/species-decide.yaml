@@ -1,0 +1,76 @@
+# admin.species_decide — решение модератора: approve добавляет вид в справочник с профилем ухода, merge привязывает
+# растения автора к существующему виду (предложение оказалось синонимом), reject — с причиной, которую увидит автор.
+# После approve и merge — пересчёт планов затронутых растений и событие houses.changed со scope plants; решение
+# пишется в audit_log и журнал растения. Общие отказы admin.* — в admin.overview. Сценарий — «Предложение нового вида и модерация».
+
+operation: admin.species_decide
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/admin/species/suggestions/{suggestion_id}/decision
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Решение по предложенному виду: одобрить, объединить или отклонить."
+
+request:
+  suggestion_id:
+    type: id
+    required: true
+    desc: Предложение; параметр пути
+  decision:
+    type: string
+    required: true
+    enum: [approve, merge, reject]
+  species:
+    type: Species
+    desc: Только при approve — профиль ухода нового вида без id (интервалы, свет, пороги влажности, токсичность)
+  target_species_id:
+    type: id
+    desc: Только при merge — существующий вид, к которому привязать растения
+  reason:
+    type: string
+    desc: Только при reject, до 300 символов — её увидит автор (не растение, дубль, шутка)
+
+response: SpeciesSuggestion
+
+errors:
+  - code: already_decided
+    category: conflict
+    desc: Решение уже принял другой модератор — клиент перезапрашивает очередь
+  - code: species_exists
+    category: conflict
+    desc: При approve латинское название уже есть в справочнике — нужно merge
+  - code: invalid_fields
+    category: validation
+    fields:
+      species: [required]
+      target_species_id: [required]
+      reason: [required, too_long]
+
+# Golden: «Фикус каучуконосный», подписанный в магазине как Ficus decora, — торговое название Ficus elastica;
+# модератор объединяет предложение с этим видом справочника (target_species_id).
+golden:
+  - name: request
+    part: request
+    value:
+      decision: merge
+      target_species_id: 019fc710-e100-7430-a91d-dd91c7a70642
+    json: '{"decision":"merge","target_species_id":"019fc710-e100-7430-a91d-dd91c7a70642"}'
+  - name: merged
+    part: response
+    value:
+      id: 01a22364-aded-750f-ba82-126b74c533df
+      latin_name: Ficus decora
+      common_name: Фикус каучуконосный
+      locale: ru
+      note: "Так подписан в магазине: лист крупный, тёмный, глянцевый"
+      author_id: 01a0caa1-e44f-77de-a33d-1d51c776de69
+      plant_id: 01a22364-5601-753e-9278-061c9481ffcb
+      status: merged
+      species_id: 019fc710-e100-7430-a91d-dd91c7a70642
+      created_at: "2026-11-28T18:22:10.413Z"
+      decided_at: "2026-12-01T10:14:52.330Z"
+    json: '{"author_id":"01a0caa1-e44f-77de-a33d-1d51c776de69","common_name":"Фикус каучуконосный","created_at":"2026-11-28T18:22:10.413Z","decided_at":"2026-12-01T10:14:52.330Z","id":"01a22364-aded-750f-ba82-126b74c533df","latin_name":"Ficus decora","locale":"ru","note":"Так подписан в магазине: лист крупный, тёмный, глянцевый","plant_id":"01a22364-5601-753e-9278-061c9481ffcb","species_id":"019fc710-e100-7430-a91d-dd91c7a70642","status":"merged"}'

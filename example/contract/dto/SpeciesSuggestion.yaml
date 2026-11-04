@@ -1,0 +1,69 @@
+# SpeciesSuggestion — предложенный пользователем вид и решение модератора. Создаёт species.suggest, очередь
+# отдаёт admin.species_queue, решение — admin.species_decide. Пока предложение pending, растение автора живёт под
+# своим названием с профилем «обычное комнатное». Сценарий — «Предложение нового вида и модерация».
+
+dto: SpeciesSuggestion
+status: live
+since: v1
+clients: [app, admin, android, server]
+summary: "Предложение нового вида и решение модератора."
+
+fields:
+  id:
+    type: id
+    required: true
+  latin_name:
+    type: string
+    desc: Латинское название, если автор его знает, — «Ficus robusta»; модератору с ним проще найти синоним
+  common_name:
+    type: string
+    required: true
+    desc: Народное название на языке locale, 1–60 символов — им же названо растение автора, пока вид проверяется
+  locale:
+    type: string
+    required: true
+    enum: [ru, en]
+    desc: Язык common_name — при одобрении название ляжет в Species.names под этой локалью
+  note:
+    type: string
+    desc: Заметка автора для модератора, до 500 символов — где купил, как выглядит
+  author_id:
+    type: id
+    desc: Кто предложил; после удаления аккаунта автора поля нет, предложение остаётся в очереди
+  plant_id:
+    type: id
+    desc: Растение, ради которого предложен вид; при approve и merge его и другие растения автора с этим названием перепривязывают к виду
+  status:
+    type: string
+    required: true
+    enum: [pending, approved, merged, rejected]
+    desc: >-
+      pending — ждёт модератора (срок реакции 3 рабочих дня); approved — вид добавлен в справочник; merged —
+      оказался синонимом существующего вида; rejected — отклонён с причиной, растение остаётся под своим названием
+  species_id:
+    type: id
+    desc: Итоговый вид — только при approved и merged
+  decision_reason:
+    type: string
+    desc: Причина решения на языке модератора; при rejected обязательна, автор видит её в журнале растения
+  created_at:
+    type: time
+    required: true
+  decided_at:
+    type: time
+    desc: Момент решения; у pending поля нет
+
+# Предложение Бориса, пока оно ждёт модератора; 1 декабря его объединят с Ficus elastica (admin.species_decide).
+golden:
+  - name: pending
+    value:
+      id: 01a22364-aded-750f-ba82-126b74c533df
+      latin_name: Ficus decora
+      common_name: Фикус каучуконосный
+      locale: ru
+      note: "Так подписан в магазине: лист крупный, тёмный, глянцевый"
+      author_id: 01a0caa1-e44f-77de-a33d-1d51c776de69
+      plant_id: 01a22364-5601-753e-9278-061c9481ffcb
+      status: pending
+      created_at: "2026-11-28T18:22:10.413Z"
+    json: '{"author_id":"01a0caa1-e44f-77de-a33d-1d51c776de69","common_name":"Фикус каучуконосный","created_at":"2026-11-28T18:22:10.413Z","id":"01a22364-aded-750f-ba82-126b74c533df","latin_name":"Ficus decora","locale":"ru","note":"Так подписан в магазине: лист крупный, тёмный, глянцевый","plant_id":"01a22364-5601-753e-9278-061c9481ffcb","status":"pending"}'

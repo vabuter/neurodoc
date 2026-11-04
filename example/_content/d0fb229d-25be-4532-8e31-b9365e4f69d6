@@ -1,0 +1,34 @@
+<svg class="bpmn" viewBox="0 0 1250 640" role="img" aria-label="BPMN: Вход: identifier-first, вычислительная задача и второй фактор">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Из [сценариев авторизации](62574d4b-6127-47ee-b4bb-decfb396b370), рядом — [регистрация](e0f22a1c-5d1c-461f-bf72-bb407b8b10fa). Чипы: [auth.start](../contract/auth/start.yaml), [auth.login](../contract/auth/login.yaml), [auth.totp_verify](../contract/auth/totp-verify.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1230" height="620"/><path d="M10 120H1240M10 280H1240M10 520H1240M118 10V630"/></g>
+<g class="lane-title"><text x="64" y="69">Пользователь</text><text x="64" y="196.5">Клиент<tspan x="64" dy="15">(веб/Android)</tspan></text><text x="64" y="404">Сервер</text><text x="64" y="579">Почта</text></g>
+<g class="flow"><path d="M180 80V140"/><path d="M238 160H254"/><path d="M336 160H370"/><path d="M390 180V222"/><path d="M310 245H180V180"/><path d="M410 160H440"/><path d="M490 140V85"/><path d="M470 65H375"/><path d="M510 65H560"/><path d="M660 65H700V270"/><path d="M700 290V320"/><path d="M680 340H150V180"/><path d="M720 340H770"/><path d="M790 360V435"/><path d="M700 360V427"/><path d="M390 140V112H220V140"/><path d="M640 450H530"/><path d="M490 450H435"/><path d="M510 430V180"/><path d="M810 340H850"/><path d="M870 360V552"/><path d="M945 575H985"/><path d="M890 340H915V225H940"/><path d="M870 320V160H1090"/><path d="M1030 245V270"/><path d="M1030 290V325"/><path d="M1010 345H955V245"/><path d="M1030 365V425"/><path d="M1050 345H1110V180"/><path d="M1130 160H1150"/><path d="M1110 140V65H1177"/><path d="M1192 132V80"/></g>
+<g class="task"><rect x="126" y="140" width="112" height="40" rx="7"/><rect x="440" y="140" width="100" height="40" rx="7"/><rect x="560" y="42" width="100" height="46" rx="7"/><rect x="940" y="205" width="120" height="40" rx="7"/><rect x="1150" y="132" width="84" height="56" rx="7"/></g>
+<g class="sys"><rect x="310" y="222" width="160" height="46" rx="7"/><rect x="640" y="427" width="120" height="46" rx="7"/><rect x="795" y="552" width="150" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="254" y="150" width="82" height="20" rx="4"/><rect x="659" y="270" width="82" height="20" rx="4"/><rect x="969" y="270" width="122" height="20" rx="4"/></g>
+<g class="gw"><path d="M390 140l20 20-20 20-20-20zM490 45l20 20-20 20-20-20zM700 320l20 20-20 20-20-20zM790 320l20 20-20 20-20-20zM510 430l20 20-20 20-20-20zM870 320l20 20-20 20-20-20zM1030 325l20 20-20 20-20-20zM1110 140l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="180" cy="65" r="15"/><circle cx="360" cy="65" r="15"/><circle cx="360" cy="65" r="12"/></g>
+<g class="ev-end"><circle cx="1000" cy="575" r="15"/><circle cx="1192" cy="65" r="15"/></g>
+<g class="ev-err"><circle cx="790" cy="450" r="15"/><circle cx="420" cy="450" r="15"/><circle cx="1030" cy="440" r="15"/></g>
+<g class="gwsym"><path d="M384 154l12 12m0-12l-12 12M484 59l12 12m0-12l-12 12M354 62.5h6v-4l6 6.5-6 6.5v-4h-6zM694 334l12 12m0-12l-12 12M794 442l-7 9h6l-7 8M784 334l12 12m0-12l-12 12M504 444l12 12m0-12l-12 12M424 442l-7 9h6l-7 8M864 334l12 12m0-12l-12 12M1024 339l12 12m0-12l-12 12M1034 432l-7 9h6l-7 8M1104 154l12 12m0-12l-12 12"/></g>
+<g class="nt"><text x="182" y="164">Отправить адрес</text><text x="390" y="242">Решить вычислительную<tspan x="390" dy="15">задачу (Web Worker)</tspan></text><text x="490" y="164">Экран пароля</text><text x="490" y="37">вход или регистрация?</text><text x="360" y="40">к регистрации</text><text x="610" y="69">Ввести пароль</text><text x="790" y="488">account_blocked</text><text x="790" y="312">заблокирован?</text><text x="700" y="447">Счётчик неудач<tspan x="700" dy="15">на адрес +1</tspan></text><text x="510" y="485">10 за час?</text><text x="420" y="479">закрыт на 15 мин<tspan x="420" dy="14">(rate_limited)</tspan></text><text x="870" y="572">Повторное письмо,<tspan x="870" dy="15">если прошло 5 мин</tspan></text><text x="1000" y="229">Экран кода TOTP</text><text x="1192" y="149">Баннер<tspan x="1192" dy="15">«удаление</tspan><tspan x="1192" dy="15">отменено»</tspan></text><text x="1192" y="29">вход<tspan x="1192" dy="14">выполнен</tspan></text><g text-anchor="start"><text x="201" y="69">вводит адрес</text><text x="1021" y="579">проверьте почту</text><text x="1042" y="386">код верен?<tspan x="1042" dy="14">(до 5 попыток)</tspan></text><text x="1051" y="444">исчерпаны</text></g><g text-anchor="end"><text x="368" y="196">state?</text><text x="690" y="386">пароль верен?</text><text x="858" y="384">state?</text><text x="1098" y="141">deletion_cancelled?</text></g></g>
+<g class="chip-label"><text x="295" y="164">auth.start</text><text x="700" y="284">auth.login</text><text x="1030" y="284">auth.totp_verify</text></g>
+<g class="lbl"><text x="396" y="206">challenge</text><text x="416" y="152">ok</text><text x="520" y="57">вход</text><text x="600" y="332">flow_expired</text><text x="726" y="332">да</text><text x="796" y="400">да</text><text x="706" y="404">нет</text><text x="462" y="442">да</text><text x="516" y="300">нет: invalid_credentials</text><text x="816" y="332">нет</text><text x="876" y="430">email_unconfirmed</text><text x="894" y="356">totp_required</text><text x="880" y="152">signed_in</text><text x="961" y="303">неверный,<tspan x="961" dy="13">code_reused</tspan></text><text x="1116" y="300">верен</text><text x="1132" y="152">да</text><text x="1116" y="110">нет</text><g text-anchor="middle"><text x="300" y="93">отказ: invalid_email,<tspan x="300" dy="13">rate_limited, challenge_invalid</tspan></text><text x="240" y="237">повтор</text><text x="418" y="57">регистрация</text></g></g>
+</svg>

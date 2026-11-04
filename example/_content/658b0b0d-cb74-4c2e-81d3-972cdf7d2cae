@@ -1,0 +1,34 @@
+<svg class="bpmn" viewBox="0 0 1160 560" role="img" aria-label="BPMN: Сброс пароля">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема из [сценариев авторизации](62574d4b-6127-47ee-b4bb-decfb396b370); требования к паролю и сроки — в описании [паролей и сброса](02d805af-75b8-4cf5-b653-5dbf3e5616d5). Операции на чипах: [auth.reset_request](../contract/auth/reset-request.yaml), [auth.reset_complete](../contract/auth/reset-complete.yaml), [auth.session_revoked](../contract/auth/session-revoked.yaml), [auth.totp_verify](../contract/auth/totp-verify.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1140" height="540"/><path d="M10 130H1150M10 260H1150M10 450H1150M118 10V550"/></g>
+<g class="lane-title"><text x="64" y="74">Пользователь</text><text x="64" y="199">Клиент</text><text x="64" y="359">Сервер</text><text x="64" y="504">Почта</text></g>
+<g class="flow"><path d="M195 85V250"/><path d="M195 270V305"/><path d="M195 345V385"/><path d="M215 325H290"/><path d="M330 325H365"/><path d="M310 345V477"/><path d="M475 325H490"/><path d="M390 500H565V348"/><path d="M565 302V218"/><path d="M565 172V93"/><path d="M640 70H780V250"/><path d="M780 270V310"/><path d="M760 330H655V85H640"/><path d="M780 350V390"/><path d="M800 330H845"/><path d="M900 353V395"/><path d="M974 405H1000V350"/><path d="M1000 310V93"/><path d="M1050 70H1080V120"/><path d="M1080 140V180"/><path d="M1020 330H1125V195H1095"/></g>
+<g class="task"><rect x="500" y="172" width="130" height="46" rx="7"/><rect x="490" y="47" width="150" height="46" rx="7"/><rect x="950" y="47" width="100" height="46" rx="7"/></g>
+<g class="sys"><rect x="365" y="302" width="110" height="46" rx="7"/><rect x="230" y="477" width="160" height="46" rx="7"/><rect x="490" y="302" width="150" height="46" rx="7"/><rect x="845" y="307" width="110" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="127.5" y="250" width="135" height="20" rx="4"/><rect x="709.5" y="250" width="141" height="20" rx="4"/><rect x="826" y="395" width="148" height="20" rx="4"/><rect x="1019" y="120" width="122" height="20" rx="4"/></g>
+<g class="gw"><path d="M195 305l20 20-20 20-20-20zM310 305l20 20-20 20-20-20zM780 310l20 20-20 20-20-20zM1000 310l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="195" cy="70" r="15"/></g>
+<g class="ev-end"><circle cx="1080" cy="195" r="15"/></g>
+<g class="ev-err"><circle cx="195" cy="400" r="15"/><circle cx="780" cy="405" r="15"/></g>
+<g class="gwsym"><path d="M189 319l12 12m0-12l-12 12M199 392l-7 9h6l-7 8M304 319l12 12m0-12l-12 12M774 324l12 12m0-12l-12 12M784 397l-7 9h6l-7 8M994 324l12 12m0-12l-12 12"/></g>
+<g class="nt"><text x="195" y="34">«Забыли пароль?»<tspan x="195" dy="14">(flow уже есть)</tspan></text><text x="310" y="297">аккаунт есть?</text><text x="420" y="322">Ничего<tspan x="420" dy="15">не отправлять</tspan></text><text x="310" y="497">Письмо reset_password<tspan x="310" dy="15">(ссылка на 30 мин)</tspan></text><text x="565" y="322">Ответ check_email —<tspan x="565" dy="15">одинаковый для всех</tspan></text><text x="565" y="192">Экран<tspan x="565" dy="15">«Проверьте почту»</tspan></text><text x="565" y="67">Открыть ссылку,<tspan x="565" dy="15">ввести новый пароль</tspan></text><text x="900" y="327">Отозвать<tspan x="900" dy="15">все сессии</tspan></text><text x="1000" y="74">Ввести код</text><text x="1080" y="224">пароль<tspan x="1080" dy="14">изменён,</tspan><tspan x="1080" dy="14">вы вошли</tspan></text><g text-anchor="start"><text x="207" y="306">лимит?</text><text x="216" y="397">rate_limited:<tspan x="216" dy="14">3 письма в час</tspan></text><text x="792" y="311">ответ?</text><text x="1012" y="311">TOTP включён?</text></g><text text-anchor="end" x="759" y="402">link_expired, link_invalid:<tspan x="759" dy="14">запросите снова</tspan></text></g>
+<g class="chip-label"><text x="195" y="264">auth.reset_request</text><text x="780" y="264">auth.reset_complete</text><text x="900" y="409">auth.session_revoked</text><text x="1080" y="134">auth.totp_verify</text></g>
+<g class="lbl"><text x="201" y="368">да</text><text x="225" y="341">нет</text><text x="334" y="318">нет</text><text x="316" y="420">да</text><text x="661" y="165">слабый пароль:<tspan x="661" dy="13">common_password,</tspan><tspan x="661" dy="13">too_short</tspan></text><text x="806" y="346">успех</text><text x="1006" y="290">да: totp_required</text><text x="1032" y="350">нет: signed_in</text><text text-anchor="end" x="559" y="284">state check_email</text><text text-anchor="middle" x="900" y="433">другим устройствам</text></g>
+</svg>

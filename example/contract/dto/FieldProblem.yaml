@@ -1,0 +1,38 @@
+# FieldProblem — ошибка одного поля запроса внутри Problem.fields (отказ invalid_fields категории validation).
+# Клиент подсвечивает поле field и показывает свой текст по code, подставляя limit; message — запасной текст сервера.
+
+dto: FieldProblem
+status: live
+since: v1
+clients: [app, admin, android, server]
+summary: "Ошибка одного поля запроса."
+
+fields:
+  field:
+    type: string
+    required: true
+    desc: Путь к полю в теле или query — password, pot_diameter_cm, readings[3].at
+  code:
+    type: string
+    required: true
+    enum: [required, too_short, too_long, invalid_format, out_of_range, not_allowed, common_password]
+    desc: >-
+      required — поля нет или оно пустое; too_short и too_long — длина строки или списка; invalid_format — не
+      тот формат (пояс IANA, HH:MM, адрес); out_of_range — число вне диапазона; not_allowed — значение не из
+      допустимых или поле здесь запрещено; common_password — пароль из списка частых утёкших
+  message:
+    type: string
+    required: true
+    desc: Текст на языке аккаунта или Accept-Language
+  limit:
+    type: int
+    desc: Нарушенная граница — только у too_short, too_long и out_of_range; длина считается в символах после NFC
+
+golden:
+  - name: password_too_short
+    value:
+      field: password
+      code: too_short
+      message: Пароль должен быть не короче 10 символов
+      limit: 10
+    json: '{"code":"too_short","field":"password","limit":10,"message":"Пароль должен быть не короче 10 символов"}'

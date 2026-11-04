@@ -1,0 +1,91 @@
+# invites.preview — что за приглашение, без входа: ссылку открывает человек, у которого может не быть аккаунта.
+# Единственная операция без авторизации, которая раскрывает данные дома, поэтому лимит у неё по IP, а не по
+# аккаунту. Истёкшее и использованное — исходы с именем дома: «Попросите у Анны новое приглашение».
+
+operation: invites.preview
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/invites/{code}
+status: live
+since: v1
+clients: [app, android, server]
+auth: none
+summary: "Что за приглашение — без входа."
+
+request:
+  code:
+    type: string
+    required: true
+    desc: >-
+      Код — параметр пути, регистр не важен, дефисы и пробелы отбрасываются, O читается как 0, I и L — как 1:
+      опечатка похожей буквой код не ломает
+
+# Ответ раскрывает только название дома, имя пригласившего и роль — ни участников, ни растений, ни адресов.
+response:
+  state:
+    type: string
+    required: true
+    enum: [valid, expired, used]
+    desc: valid — можно вступать (invites.accept); expired — прошло 72 ч; used — по нему уже вступили
+  house_name:
+    type: string
+    required: true
+    desc: Название дома — «Анна приглашает вас в дом „Квартира на Лесной“»
+  inviter_name:
+    type: string
+    required: true
+    desc: Имя owner, создавшего приглашение
+  role:
+    type: string
+    required: true
+    enum: [member, helper]
+  access_until:
+    type: time
+    desc: Только у helper — до какого момента будет доступ; экран пишет «помощником до 14 января»
+  expires_at:
+    type: time
+    required: true
+    desc: До какого момента приглашение действует (или действовало)
+
+errors:
+  - code: invite_invalid
+    category: not_found
+    desc: Такого кода нет — показывать нечего
+  - code: rate_limited
+    category: rate_limit
+    desc: Больше 20 просмотров с IP в час (IPv6 — по префиксу /64); retry_after — до конца окна
+
+# 20 декабря Вера открывает ссылку Анны (valid) и на следующий день — снова (used). expired — приглашение,
+# которое Анна создала 10 ноября и никто не открыл вовремя.
+golden:
+  - name: valid
+    part: response
+    value:
+      state: valid
+      house_name: Квартира на Лесной
+      inviter_name: Анна
+      role: helper
+      access_until: "2027-01-14T05:00:00.000Z"
+      expires_at: "2026-12-23T15:58:13.402Z"
+    json: '{"access_until":"2027-01-14T05:00:00.000Z","expires_at":"2026-12-23T15:58:13.402Z","house_name":"Квартира на Лесной","inviter_name":"Анна","role":"helper","state":"valid"}'
+  - name: used
+    part: response
+    value:
+      state: used
+      house_name: Квартира на Лесной
+      inviter_name: Анна
+      role: helper
+      access_until: "2027-01-14T05:00:00.000Z"
+      expires_at: "2026-12-23T15:58:13.402Z"
+    json: '{"access_until":"2027-01-14T05:00:00.000Z","expires_at":"2026-12-23T15:58:13.402Z","house_name":"Квартира на Лесной","inviter_name":"Анна","role":"helper","state":"used"}'
+  - name: expired
+    part: response
+    value:
+      state: expired
+      house_name: Квартира на Лесной
+      inviter_name: Анна
+      role: member
+      expires_at: "2026-11-13T18:02:27.090Z"
+    json: '{"expires_at":"2026-11-13T18:02:27.090Z","house_name":"Квартира на Лесной","inviter_name":"Анна","role":"member","state":"expired"}'

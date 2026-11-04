@@ -1,0 +1,89 @@
+# Account — аккаунт глазами самого пользователя: профиль и настройки уведомлений. Отдают account.get и
+# account.update, приходит в AuthResult.account при входе. Пароль, секрет второго фактора и история входов
+# в DTO не попадают никогда; взгляд администратора — отдельный DTO AdminUser.
+
+dto: Account
+status: live
+since: v1
+clients: [app, admin, android, server]
+summary: "Аккаунт пользователя глазами самого пользователя."
+
+fields:
+  id:
+    type: id
+    required: true
+    desc: Он же sub в access-токене
+  email:
+    type: string
+    required: true
+    desc: Адрес входа в нижнем регистре после NFC; в MVP не меняется
+  email_confirmed:
+    type: bool
+    required: true
+    desc: Подтверждён ли адрес; неподтверждённый аккаунт через 7 дней удаляет unconfirmed-cleanup
+  display_name:
+    type: string
+    required: true
+    desc: Как обращаться в приложении и письмах, 1–40 символов; так же его видят участники дома
+  locale:
+    type: string
+    required: true
+    enum: [ru, en]
+    desc: Язык интерфейса, писем и текстов Problem.message; de и es — во второй волне локализации
+  time_zone:
+    type: string
+    required: true
+    desc: >-
+      Пояс IANA (Europe/Moscow): по нему считаются тихие часы аккаунта и время в письмах, с ним создаётся новый
+      дом. Напоминания идут по поясу дома, а не аккаунта
+  units:
+    type: string
+    required: true
+    enum: [metric, imperial]
+    desc: Единицы показа — °C/°F, мл/fl oz, см/дюймы; сервер хранит и отдаёт только метрические
+  role:
+    type: string
+    required: true
+    enum: [user, admin]
+    desc: admin открывает admin.fikus.example; роль в доме — отдельно, в HouseMember
+  totp_enabled:
+    type: bool
+    required: true
+    desc: Подключён ли у аккаунта TOTP; для роли admin он обязателен — без него операции admin.* отвечают admin_totp_required
+  digest_enabled:
+    type: bool
+    required: true
+    desc: Ежедневный дайджест письмом в 07:30 по поясу дома; по умолчанию включён, три отказа почты подряд его выключают
+  quiet_hours_start:
+    type: string
+    required: true
+    desc: Начало тихих часов, HH:MM по поясу аккаунта, по умолчанию 22:00; тихие часы откладывают пуши и события, но не дайджест
+  quiet_hours_end:
+    type: string
+    required: true
+    desc: Конец тихих часов, HH:MM, по умолчанию 08:00
+  created_at:
+    type: time
+    required: true
+    desc: Момент регистрации
+  deletion_at:
+    type: time
+    desc: Только при отложенном удалении — когда аккаунт удалит account-purge; успешный вход до этого момента удаление отменяет
+
+golden:
+  - name: anna
+    value:
+      id: 01a0bfc7-666f-745d-b25a-a07a8b49c93b
+      email: anna@example.com
+      email_confirmed: true
+      display_name: Анна
+      locale: ru
+      time_zone: Europe/Moscow
+      units: metric
+      role: user
+      totp_enabled: false
+      digest_enabled: true
+      quiet_hours_start: "22:00"
+      quiet_hours_end: "08:00"
+      created_at: "2026-09-20T17:05:11.279Z"
+    json: '{"created_at":"2026-09-20T17:05:11.279Z","digest_enabled":true,"display_name":"Анна","email":"anna@example.com","email_confirmed":true,"id":"01a0bfc7-666f-745d-b25a-a07a8b49c93b","locale":"ru","quiet_hours_end":"08:00","quiet_hours_start":"22:00","role":"user","time_zone":"Europe/Moscow","totp_enabled":false,"units":"metric"}'

@@ -1,0 +1,69 @@
+# sensors.readings — показания датчика за период для графика на карточке растения: сырые точки или средние по
+# часам и дням. Показания хранятся 13 месяцев (секции sensor_readings по месяцам) — год истории плюс месяц, чтобы
+# сравнить нынешний январь с прошлым. Draft до пилота на 20 датчиках.
+
+operation: sensors.readings
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/sensors/{sensor_id}/readings
+status: draft
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Показания датчика за период для графика."
+
+request:
+  sensor_id:
+    type: id
+    required: true
+    desc: Датчик — параметр пути; график видят все участники дома
+  from:
+    type: time
+    required: true
+    desc: Начало периода, включительно
+  to:
+    type: time
+    required: true
+    desc: Конец периода, не включительно
+  step:
+    type: string
+    required: true
+    enum: [raw, hour, day]
+    desc: >-
+      raw — каждое показание, период до 7 дней; hour — средние по часам, до 31 дня; day — средние по дням
+      в поясе дома, до 13 месяцев. Пределы держат ответ в 1000 точек
+
+# Средние — целые, половина вверх: дробей нет и в графике. Интервал без показаний пропускается, а не заполняется
+# нулём, — на графике честный разрыв, а не «пересохло». Показания, пришедшие из буфера после «нет связи»,
+# ложатся со своим временем, поэтому сутки без связи дыры не оставляют.
+response:
+  items:
+    type: list<SensorReading>
+    required: true
+    desc: Точки по возрастанию at, с moisture_pct; у hour и day at — начало интервала, остальное — средние
+
+errors:
+  - code: range_too_long
+    category: validation
+    desc: Период длиннее предела для step
+  - code: invalid_fields
+    category: validation
+    fields:
+      from: [required, invalid_format]
+      to: [required, invalid_format, out_of_range]   # не позже from
+  - code: not_found
+    category: not_found
+    desc: Датчика нет
+
+# Бенджи 15 декабря, step hour с 09:00 до 12:00 по Москве (06:00–09:00 UTC): земля медленно сохнет, солнце встаёт.
+golden:
+  - name: hour_3h
+    part: response
+    value:
+      items:
+        - {at: "2026-12-15T06:00:00.000Z", moisture_raw: 2178, moisture_pct: 43, temperature_dc: 208, light_lux: 120, battery_mv: 3242}
+        - {at: "2026-12-15T07:00:00.000Z", moisture_raw: 2184, moisture_pct: 42, temperature_dc: 210, light_lux: 900, battery_mv: 3241}
+        - {at: "2026-12-15T08:00:00.000Z", moisture_raw: 2190, moisture_pct: 42, temperature_dc: 212, light_lux: 2600, battery_mv: 3241}
+    json: '{"items":[{"at":"2026-12-15T06:00:00.000Z","battery_mv":3242,"light_lux":120,"moisture_pct":43,"moisture_raw":2178,"temperature_dc":208},{"at":"2026-12-15T07:00:00.000Z","battery_mv":3241,"light_lux":900,"moisture_pct":42,"moisture_raw":2184,"temperature_dc":210},{"at":"2026-12-15T08:00:00.000Z","battery_mv":3241,"light_lux":2600,"moisture_pct":42,"moisture_raw":2190,"temperature_dc":212}]}'

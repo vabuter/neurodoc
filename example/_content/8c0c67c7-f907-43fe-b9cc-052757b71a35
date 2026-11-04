@@ -1,0 +1,34 @@
+<svg class="bpmn" viewBox="0 0 1200 560" role="img" aria-label="BPMN: Загрузка фото растения">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема к разделу [фотографии растений](9fa3bc68-f558-4875-923a-548b7b2e523b). Чипы: [photos.upload_url](../contract/photos/upload-url.yaml), [photos.confirm](../contract/photos/confirm.yaml), [houses.changed](../contract/houses/changed.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1180" height="140"/><rect x="10" y="150" width="1180" height="140"/><rect x="10" y="290" width="1180" height="110"/><rect x="10" y="400" width="1180" height="150"/><path d="M110 10V550"/></g>
+<g class="lane-title"><text x="60" y="84">Клиент</text><text x="60" y="224">Сервер</text><text x="60" y="342">Объектное<tspan x="60" dy="14">хранилище</tspan></text><text x="60" y="472">Фоновые<tspan x="60" dy="14">задачи</tspan></text></g>
+<g class="flow"><path d="M165 80H189"/><path d="M321 80H345"/><path d="M365 60V30H414"/><path d="M385 80H420"/><path d="M460 80H476"/><path d="M540 90V190"/><path d="M540 230V254"/><path d="M560 210H680V97"/><path d="M743 80H780V325"/><path d="M760 345H440V100"/><path d="M800 345H860V90"/><path d="M914 80H980V200"/><path d="M980 240V258"/><path d="M1000 220H1040V420"/><path d="M1040 480V500"/><path d="M1020 520H946"/><path d="M1060 520H1130V277"/><path d="M1130 243V112"/><path d="M1130 78V46"/><path d="M315 474H390"/><path d="M510 474H564"/></g>
+<g class="task"><rect x="189" y="57" width="132" height="46" rx="7"/><rect x="617" y="63" width="126" height="34" rx="7"/><rect x="1078" y="78" width="104" height="34" rx="7"/></g>
+<g class="sys"><rect x="964" y="420" width="153" height="60" rx="7"/><rect x="390" y="451" width="119" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="476" y="70" width="129" height="20" rx="4"/><rect x="806" y="70" width="109" height="20" rx="4"/><rect x="1076" y="243" width="109" height="34" rx="4"/></g>
+<g class="gw"><path d="M365 60l20 20-20 20-20-20z"/><path d="M440 60l20 20-20 20-20-20z"/><path d="M540 190l20 20-20 20-20-20z"/><path d="M980 200l20 20-20 20-20-20z"/><path d="M780 325l20 20-20 20-20-20z"/><path d="M1040 500l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="150" cy="80" r="15"/><circle cx="300" cy="474" r="15"/><circle cx="300" cy="474" r="11"/></g>
+<g class="ev-end"><circle cx="1130" cy="30" r="15"/><circle cx="580" cy="474" r="15"/></g>
+<g class="ev-err"><circle cx="430" cy="30" r="15"/><circle cx="540" cy="270" r="15"/><circle cx="980" cy="274" r="15"/><circle cx="930" cy="520" r="15"/></g>
+<g class="gwsym"><path d="M359 74l12 12m0-12l-12 12M434 22l-7 9h6l-7 8M434 74l12 12m0-12l-12 12M534 204l12 12m0-12l-12 12M544 262l-7 9h6l-7 8M974 214l12 12m0-12l-12 12M984 266l-7 9h6l-7 8M774 339l12 12m0-12l-12 12M1034 514l12 12m0-12l-12 12M934 512l-7 9h6l-7 8M300 468v6l4 3"/></g>
+<g class="nt"><text x="150" y="109">Выбрано<tspan x="150" dy="14">фото</tspan></text><text x="255" y="77">Проверить размер<tspan x="255" dy="14">и тип</tspan></text><text x="365" y="114">≤ 10 МБ и<tspan x="365" dy="14">jpeg, png, heic?</tspan></text><text x="453" y="27" text-anchor="start">Без запроса: больше<tspan x="453" dy="14">10 МБ или не тот формат</tspan></text><text x="680" y="84">PUT в хранилище</text><text x="1130" y="99">Показать фото</text><text x="1107" y="34" text-anchor="end">Фото в карточке</text><text x="513" y="214" text-anchor="end">Ответ?</text><text x="563" y="267" text-anchor="start">plant_photo_limit:<tspan x="563" dy="14">20 фото — предел</tspan></text><text x="953" y="224" text-anchor="end">Ответ?</text><text x="957" y="271" text-anchor="end">upload_missing:<tspan x="957" dy="14">объекта нет</tspan></text><text x="780" y="379">Ответ хранилища?</text><text x="1040" y="440">photo-process: EXIF<tspan x="1040" dy="14">и геометка прочь,</tspan><tspan x="1040" dy="14">WebP 1280 и 320</tspan></text><text x="1024" y="504" text-anchor="end">Обработка удалась?</text><text x="907" y="517" text-anchor="end">state failed,<tspan x="907" dy="14">оригинал удалён</tspan></text><text x="300" y="503">1 ч без confirm</text><text x="450" y="471">photo-orphans:<tspan x="450" dy="14">удалить объект</tspan></text><text x="603" y="478" text-anchor="start">Объект удалён</text></g>
+<g class="chip-label"><text x="540" y="84">photos.upload_url</text><text x="860" y="84">photos.confirm</text><text x="1130" y="257">houses.changed</text></g>
+<g class="lbl"><text x="1130" y="271" text-anchor="middle">scope plants</text><text x="371" y="44">нет</text><text x="391" y="74">да</text><text x="566" y="188">ok: ссылка PUT<tspan x="566" dy="13">на 10 мин</tspan></text><text x="460" y="319">403: ссылка истекла — взять<tspan x="460" dy="13">новую, не больше 2 раз</tspan></text><text x="806" y="339">200</text><text x="1046" y="354">ok: state<tspan x="1046" dy="13">processing</tspan></text><text x="1014" y="514" text-anchor="end">сбой</text><text x="1066" y="514">state ready</text></g>
+</svg>

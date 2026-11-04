@@ -1,0 +1,87 @@
+# Species — вид из справочника: базовые интервалы, из которых план ухода считает задачи, и коридор влажности
+# для датчика. Справочник правит только модератор (admin.species_decide, профиль при approve); пользователь
+# вид предлагает (species.suggest). В выдаче species.search — только одобренные виды.
+
+dto: Species
+status: live
+since: v1
+clients: [app, admin, android, server]
+summary: "Вид из справочника с базовым профилем ухода."
+
+fields:
+  id:
+    type: id
+    required: true
+  latin_name:
+    type: string
+    required: true
+    desc: Латинское название, уникальное в справочнике; по нему species.suggest находит уже существующий вид
+  names:
+    type: map<string,string>
+    required: true
+    desc: >-
+      Народные названия по локалям — ru и en, во второй волне de и es. Названия на языке пользователя нет —
+      клиент показывает латинское: машинного перевода в справочнике нет
+  light:
+    type: string
+    required: true
+    enum: [low, medium, bright, direct]
+    desc: Предпочтительный свет — подсказка в форме «Добавить растение»; план считает свет растения, а не вида
+  water_days:
+    type: int
+    required: true
+    desc: Базовый интервал полива в днях до коэффициентов сезона, горшка и света
+  feed_days:
+    type: int
+    required: true
+    desc: Базовый интервал подкормки; 0 — вид не подкармливают, пункта в плане нет
+  mist_days:
+    type: int
+    required: true
+    desc: Базовый интервал опрыскивания; 0 — опрыскивать не нужно
+  repot_months:
+    type: int
+    required: true
+    desc: Пересадка раз в N месяцев; план переводит в дни как repot_months × 365 / 12 (24 мес. → 730 дней)
+  rotate_days:
+    type: int
+    required: true
+    desc: Поворот к свету раз в N дней — иначе крона тянется к окну одним боком
+  moisture_min:
+    type: int
+    required: true
+    desc: >-
+      Нижняя граница влажности почвы в процентах для универсального грунта: ниже — полив назначается сразу.
+      Грунт растения сдвигает коридор: cactus −10 пунктов, peat +5
+  moisture_max:
+    type: int
+    required: true
+    desc: Верхняя граница влажности; выше неё в день полива полив переносится на день, но не больше 3 раз подряд
+  winter_feed_pause:
+    type: bool
+    required: true
+    desc: true — зимой подкормка на паузе (winter_rest); false — зимой действует осенний коэффициент 150
+  toxic_to_pets:
+    type: bool
+    required: true
+    desc: Ядовит для кошек и собак — карточка растения показывает предупреждающий значок
+
+golden:
+  - name: ficus_benjamina
+    value:
+      id: 019fc710-e100-7448-a192-990183571c83
+      latin_name: Ficus benjamina
+      names:
+        ru: Фикус Бенджамина
+        en: Weeping fig
+      light: bright
+      water_days: 7
+      feed_days: 14
+      mist_days: 4
+      repot_months: 24
+      rotate_days: 14
+      moisture_min: 30
+      moisture_max: 60
+      winter_feed_pause: true
+      toxic_to_pets: true
+    json: '{"feed_days":14,"id":"019fc710-e100-7448-a192-990183571c83","latin_name":"Ficus benjamina","light":"bright","mist_days":4,"moisture_max":60,"moisture_min":30,"names":{"en":"Weeping fig","ru":"Фикус Бенджамина"},"repot_months":24,"rotate_days":14,"toxic_to_pets":true,"water_days":7,"winter_feed_pause":true}'

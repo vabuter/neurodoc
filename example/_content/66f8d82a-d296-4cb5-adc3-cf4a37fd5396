@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# /opt/fikus/bin/fikus-backup.sh — ночная копия базы Fikus: pg_dump → age → корзина fikus-backups.
+# Запускается сервисом fikus-backup.service по таймеру в 03:30 UTC; ставится [на шаге 2 установки](b191c65b-445a-41c5-9b64-cb4f75498cd5).
+# Свежесть копий по файлу last-success проверяет [мониторинг](78840182-e4a1-4c97-8882-32fa5457743a); что в базе — [хранение данных](ecf6dfa8-05f3-4264-a02b-66f6b465e863).
+# Секретов здесь нет: ключи корзины приходят переменными RCLONE_CONFIG_FIKUS_S3_* из /etc/fikus/backup.env.
+set -euo pipefail
+
+BACKUP_DIR=/var/lib/fikus/backup
+RECIPIENT=/etc/fikus/backup.age.pub
+# Имя remote — с подчёркиванием: переменные rclone ищет как RCLONE_CONFIG_<ИМЯ>_<ПАРАМЕТР>,
+# и remote с дефисом в имени из окружения не собрать
+REMOTE=fikus_s3:fikus-backups/daily/
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+OUT="$BACKUP_DIR/fikus-$STAMP.dump.age"
+
+restore_hint() {
+    cat <<EOF
+Восстановление — на машине с закрытым ключом age, ключ корзины на чтение — из менеджера паролей:
+  rclone copy ${REMOTE}fikus-$STAMP.dump.age .
+  age -d -i key.txt fikus-$STAMP.dump.age | pg_restore --clean --if-exists --no-owner -d fikus
+EOF
+}
+
+if [[ "${1:-}" == "--restore-hint" ]]; then
+    restore_hint
+    exit 0
+fi
+
+# 0711, как и /var/lib/fikus: мониторинг читает last-success, но не видит списка копий
+install -d -m 0711 "$BACKUP_DIR"
+trap 'logger -t fikus-backup "ошибка в строке $LINENO, копия $STAMP не сделана"; rm -f "$OUT"' ERR
+umask 077
+
+# -Fc: сжатый формат, из него pg_restore восстанавливает выборочно. pipefail не даст упавшему
+# pg_dump спрятаться за успешным age. Шифрование открытым ключом: закрытого на сервере нет вообще
+pg_dump -Fc -d fikus | age -R "$RECIPIENT" > "$OUT"
+if [[ ! -s "$OUT" ]]; then
+    logger -t fikus-backup "пустая копия $OUT"
+    rm -f "$OUT"
+    exit 1
+fi
+
+# Ключ корзины только на запись: rclone не должен ни проверять корзину, ни читать её содержимое.
+# Срок хранения 30 дней задаёт правило самой корзины, а не этот скрипт
+rclone copy --no-check-dest --s3-no-check-bucket "$OUT" "$REMOTE"
+
+# Локально копии живут 3 дня: откат после неудачной миграции — без скачивания
+find "$BACKUP_DIR" -name 'fikus-*.dump.age' -mtime +3 -delete
+date -u +%Y-%m-%dT%H:%M:%SZ > "$BACKUP_DIR/last-success"
+chmod 0644 "$BACKUP_DIR/last-success"
+logger -t fikus-backup "копия $STAMP выгружена"

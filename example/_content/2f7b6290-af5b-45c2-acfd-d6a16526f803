@@ -1,0 +1,33 @@
+<svg class="bpmn" viewBox="0 0 1200 560" role="img" aria-label="BPMN: Цикл датчика: показания, буфер и «нет связи»">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема к [приёму показаний](5ac13995-e823-46e3-85b1-4da4005cb92b); переходы — к [пересчёту плана](a138c792-cfa6-4a71-b813-d6c81ba264f6) и [обновлению прошивки](730e60dc-123c-40f2-ad6a-ee97d92f3a3f). Чипы: [ingest.readings](../contract/ingest/readings.yaml), [sensors.alert](../contract/sensors/alert.yaml), [sensors.readings](../contract/sensors/readings.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1180" height="180"/><rect x="10" y="190" width="1180" height="90"/><rect x="10" y="280" width="1180" height="170"/><rect x="10" y="450" width="1180" height="100"/><path d="M110 10V550"/></g>
+<g class="lane-title"><text x="60" y="104">Датчик</text><text x="60" y="232">Приём<tspan x="60" dy="14">(fikus-api)</tspan></text><text x="60" y="355">Фоновые<tspan x="60" dy="14">задачи</tspan><tspan x="60" dy="14">(sensor-watch)</tspan></text><text x="60" y="497">Участники<tspan x="60" dy="14">дома</tspan></text></g>
+<g class="flow"><path d="M165 100H205"/><path d="M295 100H330"/><path d="M350 120V137"/><path d="M423 160H449"/><path d="M370 100H412"/><path d="M528 100H580"/><path d="M500 117V212" stroke-dasharray="5 4"/><path d="M600 80V40H680"/><path d="M790 40H844"/><path d="M620 100H680"/><path d="M790 100H840"/><path d="M880 100H945"/><path d="M860 120V144"/><path d="M600 120V137"/><path d="M666 160H709"/><path d="M564 235H635"/><path d="M165 365H230"/><path d="M250 345V320H315"/><path d="M270 365H315"/><path d="M250 385V410H315"/><path d="M525 320H590V345"/><path d="M525 365H570"/><path d="M525 410H590V385"/><path d="M610 365H649"/><path d="M700 375V477" stroke-dasharray="5 4"/><path d="M752 500H799"/><path d="M921 500H964"/></g>
+<g class="task"><rect x="205" y="83" width="90" height="34" rx="7"/><rect x="277" y="137" width="146" height="46" rx="7"/><rect x="680" y="23" width="110" height="34" rx="7"/><rect x="680" y="83" width="110" height="34" rx="7"/><rect x="534" y="137" width="132" height="46" rx="7"/><rect x="648" y="477" width="105" height="46" rx="7"/></g>
+<g class="sys"><rect x="376" y="212" width="188" height="46" rx="7"/><rect x="315" y="303" width="210" height="34" rx="7"/><rect x="315" y="348" width="210" height="34" rx="7"/><rect x="315" y="393" width="210" height="34" rx="7"/></g>
+<g class="op-chip"><rect x="412" y="83" width="115" height="34" rx="4"/><rect x="649" y="355" width="102" height="20" rx="4"/><rect x="799" y="483" width="122" height="34" rx="4"/></g>
+<g class="gw"><path d="M350 80l20 20-20 20-20-20z"/><path d="M600 80l20 20-20 20-20-20z"/><path d="M860 80l20 20-20 20-20-20z"/><path d="M250 345l20 20-20 20-20-20z"/><path d="M590 345l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="150" cy="100" r="15"/><circle cx="150" cy="100" r="11"/><circle cx="960" cy="100" r="15"/><circle cx="960" cy="100" r="12"/><circle cx="650" cy="235" r="15"/><circle cx="650" cy="235" r="12"/><circle cx="150" cy="365" r="15"/><circle cx="150" cy="365" r="11"/></g>
+<g class="ev-end"><circle cx="465" cy="160" r="15"/><circle cx="860" cy="40" r="15"/><circle cx="860" cy="160" r="15"/><circle cx="725" cy="160" r="15"/><circle cx="980" cy="500" r="15"/></g>
+<g class="gwsym"><path d="M150 94v6l4 3M344 94l12 12m0-12l-12 12M594 94l12 12m0-12l-12 12M854 94l12 12m0-12l-12 12M954 98h6v-4l6 6-6 6v-4h-6zM644 233h6v-4l6 6-6 6v-4h-6zM150 359v6l4 3M242 365a8 8 0 1 0 16 0a8 8 0 1 0-16 0M582 365a8 8 0 1 0 16 0a8 8 0 1 0-16 0"/></g>
+<g class="nt"><text x="150" y="129">30 мин:<tspan x="150" dy="14">пробуждение</tspan></text><text x="250" y="104">Измерить</text><text x="350" y="73">Wi-Fi есть?</text><text x="350" y="157">В буфер: до 48,<tspan x="350" dy="14">старые вытесняются</tspan></text><text x="465" y="137">Сон</text><text x="584" y="84" text-anchor="end">Ответ?</text><text x="735" y="44">Мигнуть 3 раза</text><text x="883" y="44" text-anchor="start">Сон</text><text x="735" y="104">Очистить буфер</text><text x="860" y="73">firmware_check?</text><text x="982" y="97" text-anchor="start">К схеме обновления<tspan x="982" dy="14">прошивки</tspan></text><text x="883" y="164" text-anchor="start">Сон</text><text x="600" y="157">Сохранить буфер,<tspan x="600" dy="14">мигнуть 2 раза</tspan></text><text x="748" y="164" text-anchor="start">Сон</text><text x="470" y="232">Отбросить дубли и старше<tspan x="470" dy="14">7 дней; moisture_pct</tspan></text><text x="672" y="239" text-anchor="start">К пересчёту плана</text><text x="150" y="394">каждые 5 мин</text><text x="234" y="349" text-anchor="end">Изменения?</text><text x="420" y="324">offline: тишина больше 3 ч</text><text x="420" y="369">online: связь вернулась</text><text x="420" y="414">battery_low: &lt; 15 %, один раз</text><text x="700" y="497">Пуш с учётом<tspan x="700" dy="14">тихих часов</tspan></text><text x="1003" y="504" text-anchor="start">Плашка на карточке</text></g>
+<g class="chip-label"><text x="470" y="97">ingest.readings</text><text x="700" y="369">sensors.alert</text><text x="860" y="497">sensors.readings</text></g>
+<g class="lbl"><text x="470" y="111" text-anchor="middle">весь буфер</text><text x="860" y="511" text-anchor="middle">график за период</text><text x="356" y="134">нет</text><text x="376" y="94">да</text><text x="594" y="20" text-anchor="end">device_unknown<tspan x="594" dy="13">(401)</tspan></text><text x="626" y="94">accepted</text><text x="886" y="94">да</text><text x="866" y="134">нет</text><text x="594" y="132" text-anchor="end">unclaimed</text></g>
+</svg>

@@ -1,0 +1,95 @@
+# Конфигурация сервера: fikus.toml
+
+Что читает [fikus-api](8d9d5b09-2eda-4027-909a-9cfd6a2a4da3) при старте. Файлов два, и делятся они по секретности:
+
+- /etc/fikus/fikus.toml — всё несекретное. В репозитории лежит как server/deploy/fikus.toml и выкладывается как есть, правки проходят ревью вместе с кодом.
+- /etc/fikus/fikus.env — только секреты, права 0600, владелец root. Его читает systemd (EnvironmentFile в [unit-файле сервиса](00e0ec78-2e83-47f6-afe6-3249b219d8b1)) до перехода к пользователю fikus. В репозитории и в документации у секретов только плейсхолдеры вида ${FIKUS_S3_SECRET_KEY}; настоящие значения вписываются на сервере при установке — [шаг 2](b191c65b-445a-41c5-9b64-cb4f75498cd5).
+
+## Полный пример
+
+```toml
+[http]
+listen = "127.0.0.1:8080"            # наружу смотрит только nginx
+public_host = "api.fikus.example"    # iss в JWT, адреса в system.config
+ingest_host = "ingest.fikus.example" # по нему отличаются запросы датчиков
+shutdown_timeout = 15                # меньше TimeoutStopSec=20 в unit
+
+[db]
+dsn = "host=/run/postgresql dbname=fikus user=fikus"  # unix-сокет, вход peer, без пароля
+max_conns = 20                       # из max_connections = 50: остаются psql, pg_dump, миграции
+
+[auth]
+access_ttl = 900                     # 15 минут
+refresh_ttl = 2592000                # 30 дней с последнего обновления
+refresh_grace = 20                   # окно повтора прежнего refresh-токена
+jwt_key_file = "/etc/fikus/jwt-ed25519.key"
+
+[limits]
+auth_start_per_ip = 30               # за 10 минут
+challenge_after_starts = 10          # auth.start с одного IP за 10 минут, дальше — вычислительная задача
+challenge_after_failures = 3         # неудачных паролей на адрес за 15 минут — тоже задача
+challenge_bits = 18                  # под атакой поднимают до 20
+password_failures_per_email = 10     # за час, потом адрес закрыт на 15 минут
+totp_attempts_per_flow = 5
+reset_requests_per_email = 3         # писем сброса в час
+invites_preview_per_ip = 20          # в час
+sensors_claim_per_account = 10       # в час
+ingest_min_interval = 60             # секунд между пачками одного датчика
+
+[push]
+ping_interval = 30
+replay_window = 600                  # столько секунд событий досылается после обрыва
+
+[jobs]
+workers = 4                          # photo-process — не больше двух одновременно
+
+[s3]
+endpoint_host = "s3.fikus.example"   # плейсхолдер провайдера
+photos_bucket = "fikus-photos"
+firmware_bucket = "fikus-firmware"
+
+[mail]
+smtp = "smtp.fikus.example:587"      # STARTTLS
+from = "noreply@fikus.example"
+reply_to = "support@fikus.example"
+
+[fcm]
+credentials_file = "/etc/fikus/fcm.json"
+
+[apns]
+enabled = false                      # iOS — после MVP
+key_file = "/etc/fikus/apns.p8"
+
+[maintenance]
+flag_file = "/var/lib/fikus/maintenance.flag"
+reread_interval = 5
+
+[log]
+file = "/var/log/fikus/api.log"
+level = "info"                       # debug — только через трассировку пользователя
+```
+
+Адреса в конфиге — только имена хостов, без схемы: API и хранилище работают исключительно по https, и ключ, которым схему можно сменить на http, был бы ловушкой. Длительности — целые секунды, как и в контракте.
+
+Секции по смыслу описаны рядом с подсистемами: `[auth]` — в [токенах и сессиях](7bbd67e0-f4aa-412a-8037-ddef20e53526), `[limits]` — в [защите от ботов](d5d15aca-72ab-4733-828c-2fb1e561460d), `[push]` — в описании [канала push](5a477c76-fbf4-490e-adfb-21246ea0c5b4), `[jobs]` — в [фоновых задачах](2333813e-aafa-43f1-8db3-c6c8ea18de24), `[s3]` — в [объектном хранилище](f12a73ee-43d1-4689-99fd-3223161ce417). Файл из `[maintenance]` — единственный флаг полного закрытия: его ставят скрипт деплоя и команда из админки, а nginx проверяет его на каждом запросе — [режим обслуживания](23f1e856-85b0-4501-a8e9-fbc8c6999b6a).
+
+## Переменные окружения
+
+| Переменная | Заменяет ключ | Что это |
+|---|---|---|
+| FIKUS_S3_ACCESS_KEY | s3.access_key | ключ доступа к корзинам fikus-photos и fikus-firmware |
+| FIKUS_S3_SECRET_KEY | s3.secret_key | секрет этого ключа |
+| FIKUS_SMTP_PASSWORD | mail.password | пароль учётной записи на релее |
+| FIKUS_FCM_CREDENTIALS | fcm.credentials_file | путь к JSON сервисного аккаунта FCM |
+| FIKUS_APNS_KEY_ID | apns.key_id | идентификатор ключа APNs; до iOS пусто |
+| FIKUS_APNS_KEY_FILE | apns.key_file | путь к ключу APNs |
+
+Ключа корзины fikus-backups здесь нет: резервное копирование ходит со своим ключом только на запись из /etc/fikus/backup.env, и утечка ключей API не даёт стереть копии.
+
+## Правила
+
+- Значение из окружения побеждает toml. Поэтому секрет не попадает в файл из репозитория, а стенд меняет пути к ключам, не трогая общий toml.
+- Секретов в toml нет вовсе: s3.access_key, s3.secret_key и mail.password приходят только из окружения, без них процесс не стартует.
+- Неизвестный ключ — ошибка старта с его именем: опечатка вроде refesh_ttl не должна молча оставить значение по умолчанию.
+- Файлы ключей (jwt-ed25519.key, fcm.json, apns.p8) — владелец fikus, права 0600: их читает уже сам процесс.
+- Конфиг применяется перезапуском: systemctl restart fikus-api. Без перезапуска меняются только флаг обслуживания (раз в 5 секунд) и флаги функций — они в базе, а не в файле.

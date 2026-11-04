@@ -1,0 +1,61 @@
+# care.snooze — отложить задачу не дальше чем на 72 ч от текущего момента: дальше трёх суток откладывают уже не
+# задачу, а уход, и честнее пропустить (care.skip). Свайп влево — отложить на сутки, до того же времени завтра.
+# Срок задачи не меняется, повтор даёт то же состояние — Idempotency-Key не нужен. Сценарий — «Выполнение задачи ухода».
+
+operation: care.snooze
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/tasks/{task_id}/snooze
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Отложить задачу не дальше чем на 72 ч."
+
+request:
+  task_id:
+    type: id
+    required: true
+    desc: Задача — параметр пути; откладывать можно open и уже отложенную, отсчёт 72 ч — от текущего момента
+  until:
+    type: time
+    required: true
+    desc: >-
+      До какого момента отложить: позже текущего, не дальше 72 ч. Отложенная задача уходит из «Сегодня» и
+      возвращается туда в until уже открытой; пересчёт плана её не двигает, пока не кончится откладывание
+
+response: CareTask   # state snoozed, snoozed_until = until, due_at прежний
+
+errors:
+  - code: snooze_too_far
+    category: validation
+    desc: until дальше 72 ч — «Отложить можно не больше чем на 72 часа»; задача остаётся open
+  - code: invalid_fields
+    category: validation
+    fields:
+      until: [required, out_of_range]   # в прошлом
+  - code: task_closed
+    category: conflict
+    desc: Задача уже выполнена, пропущена или закрыта пересчётом плана — клиент обновляет список
+
+# 19 декабря Анна свайпом откладывает полив монстеры на сутки — в 09:03 по Москве.
+golden:
+  - name: request
+    part: request
+    value:
+      until: "2026-12-20T06:03:41.120Z"
+    json: '{"until":"2026-12-20T06:03:41.120Z"}'
+  - name: snoozed
+    part: response
+    value:
+      id: 01a24f33-a848-77cd-81b4-79ecc38a36b2
+      plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_name: Монстера в спальне
+      kind: water
+      due_at: "2026-12-19T05:00:00.000Z"
+      state: snoozed
+      snoozed_until: "2026-12-20T06:03:41.120Z"
+    json: '{"due_at":"2026-12-19T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a24f33-a848-77cd-81b4-79ecc38a36b2","kind":"water","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","plant_name":"Монстера в спальне","snoozed_until":"2026-12-20T06:03:41.120Z","state":"snoozed"}'

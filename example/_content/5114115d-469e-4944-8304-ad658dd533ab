@@ -1,0 +1,56 @@
+# Шаг 3. Nginx, TLS и статика
+
+[Часть процедуры установки сервера с нуля](3a9c6939-c7b9-44b0-962b-33355477060e).
+
+Сертификату нужен работающий :80, а полному конфигу — сертификат. Поэтому порядок такой: временный конфиг только для проверок Let's Encrypt, выпуск сертификата, потом конфиг целиком.
+
+```bash
+apt install -y nginx certbot
+install -d -m 0755 /var/www/fikus/{www,app,admin,status,acme}
+rm -f /etc/nginx/sites-enabled/default
+cat > /etc/nginx/sites-enabled/acme.conf <<'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    location /.well-known/acme-challenge/ { root /var/www/fikus/acme; }
+}
+EOF
+nginx -t && systemctl reload nginx
+certbot certonly --webroot -w /var/www/fikus/acme \
+  -d fikus.example -d app.fikus.example -d admin.fikus.example \
+  -d api.fikus.example -d ingest.fikus.example \
+  --deploy-hook 'systemctl reload nginx'
+```
+
+Один сертификат на пять имён: certbot называет его по первому -d и кладёт в /etc/letsencrypt/live/fikus.example/. Продлевает его certbot.timer из пакета — дважды в сутки проверяет срок и обновляет за 30 дней до конца, а deploy-hook запоминается в настройках продления и после каждого обновления перечитывает nginx.
+
+Теперь [конфиг nginx целиком](a9544132-375e-4da2-aa98-1f8955396bae): его текст ложится в /etc/nginx/sites-available/fikus.conf (путь — в первой строке файла). Общие параметры TLS конфиг подключает include-ом из /etc/nginx/snippets/fikus-tls.conf — файл лежит в документации рядом с конфигом, ссылка на него стоит у самой строки include. Как запросы потом расходятся по адресам, показывает [схема маршрутизации](68b008e0-9c52-4b07-88cf-0ced889407b5).
+
+```bash
+rm /etc/nginx/sites-enabled/acme.conf
+ln -s /etc/nginx/sites-available/fikus.conf /etc/nginx/sites-enabled/fikus.conf
+nginx -t && systemctl reload nginx
+systemctl list-timers certbot.timer
+```
+
+Статика. [Страница обслуживания](44ac5d9b-badb-453c-a2e1-f841f87f99e7) копируется в /var/www/fikus/status/maintenance.html: nginx отдаёт её сам, поэтому она не зависит ни от чего на сервере. Веб-клиенты первого релиза — из артефактов CI тега v0.9.0; nginx смотрит в каталог версии через ссылку current, и скрипт деплоя потом переключает её одной атомарной операцией:
+
+```bash
+install -m 0644 maintenance.html /var/www/fikus/status/maintenance.html
+for app in www app admin; do
+  rsync -a "dist/$app/" "/var/www/fikus/$app/v0.9.0/"
+  ln -sfn v0.9.0 "/var/www/fikus/$app/current"
+done
+```
+
+Проверка — сайт, API и TLS снаружи:
+
+```bash
+curl -I https://fikus.example
+curl -fsS https://api.fikus.example/health
+openssl s_client -connect api.fikus.example:443 -servername api.fikus.example -brief </dev/null
+```
+
+Ожидается HTTP/2 200, {"status":"ok","version":"v0.9.0"} и TLSv1.3 в строке протокола; попытка с ключом -tls1_1 должна оборваться на рукопожатии.
+
+Сервер готов. Дальше релизы идут не руками, а через [деплой и CI](42c2e3fd-a5e1-4c67-b067-4c38d858ced3).

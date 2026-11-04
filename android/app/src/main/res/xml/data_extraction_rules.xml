@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   settings.json не уходит ни в облачный бэкап, ни при переносе на новое
+   устройство: в нём git-токены открытым текстом.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="settings.json" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="settings.json" />
+    </device-transfer>
+</data-extraction-rules>

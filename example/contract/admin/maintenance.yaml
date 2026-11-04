@@ -1,0 +1,67 @@
+# admin.maintenance — режим обслуживания: banner только объявляет работы, full создаёт /var/lib/fikus/maintenance.flag —
+# nginx закрывает fikus.example и app.fikus.example страницей обслуживания, API отвечает Problem maintenance; off флаг
+# удаляет. Включение full админка подтверждает вводом слова «обслуживание»; admin.fikus.example от режима не закрывается.
+# Событие system.maintenance и запись в audit_log. Общие отказы admin.* — в admin.overview. Сценарий — «Включение режима обслуживания».
+
+operation: admin.maintenance
+kind: request
+transport: http
+http:
+  method: PUT
+  path: /v1/admin/maintenance
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Режим обслуживания: выключен, баннер или полный."
+
+request:
+  mode:
+    type: string
+    required: true
+    enum: ["off", banner, full]
+  message_ru:
+    type: string
+    desc: Текст баннера и страницы обслуживания на русском; обязателен для banner и full
+  message_en:
+    type: string
+    desc: Текст на английском; нет — клиенты на другом языке увидят русский
+  until:
+    type: time
+    desc: Плановый конец работ — для баннера и retry_after в Problem maintenance
+
+response:
+  mode:
+    type: string
+    required: true
+    enum: ["off", banner, full]
+  until:
+    type: time
+    desc: Нет — срок не назван
+  changed_at:
+    type: time
+    required: true
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      message_ru: [required]   # для banner и full
+      until: [out_of_range]    # в прошлом
+
+golden:
+  - name: request
+    part: request
+    value:
+      mode: full
+      message_ru: Плановые работы 14 марта с 03:00 до 03:30 UTC
+      message_en: Scheduled maintenance on March 14, 03:00–03:30 UTC
+      until: "2026-03-14T03:30:00.000Z"
+    json: '{"message_en":"Scheduled maintenance on March 14, 03:00–03:30 UTC","message_ru":"Плановые работы 14 марта с 03:00 до 03:30 UTC","mode":"full","until":"2026-03-14T03:30:00.000Z"}'
+  - name: full
+    part: response
+    value:
+      mode: full
+      until: "2026-03-14T03:30:00.000Z"
+      changed_at: "2026-03-14T03:00:02.118Z"
+    json: '{"changed_at":"2026-03-14T03:00:02.118Z","mode":"full","until":"2026-03-14T03:30:00.000Z"}'

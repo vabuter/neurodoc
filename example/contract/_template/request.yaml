@@ -1,0 +1,100 @@
+# Шаблон операции-запроса: копия файла — начало новой операции contract/<домен>/<действие-через-дефис>.yaml.
+# Правила — в «Соглашениях контракта API», golden — в «Формате обмена: JSON и golden-фикстуры», отказы и поле
+# state — в «Отказах и исходах операций». Пример — выдуманная операция example.echo; комментарии в копии удаляют.
+
+operation: example.echo           # домен.действие в snake_case
+kind: request                     # request; события канала push — по шаблону push.yaml
+transport: http                   # http | websocket
+http:
+  method: POST                    # GET — чтение | POST — создание и действия | PUT — подресурс целиком | PATCH | DELETE
+  path: /v1/example/echo          # всегда /v1/…; {имя} в пути — параметр пути, он же поле request
+  # idempotency_key: true         # только если повтор создал бы дубль: заголовок Idempotency-Key, ответ хранится 24 ч
+  # host: ingest.fikus.example    # только если хост не api.fikus.example — операции датчика ingest.*
+status: draft                     # draft — меняется как угодно | live — только совместимо | deprecated — ещё 2 минорные версии
+since: v1                         # с какой версии API операция доступна клиентам
+clients: [app, android, server]   # www | app | admin | android | ios | sense; server — реализует fikus-api
+auth: user                        # none | user — access-токен | admin — роль и второй фактор | device — токен датчика
+summary: "Повторяет присланный текст — пример формы операции."   # одна строка, слово в слово уходит в реестр операций
+
+# Поле: type — string | int | bool | id | time | date | duration | url | map<string,T> | list<T> | имя DTO
+# (id — UUIDv7, time — RFC 3339 в UTC с миллисекундами, date — YYYY-MM-DD, duration — целые секунды; дробей нет,
+# ADR-017); required — true, только если без поля операция бессмысленна; enum — строки snake_case, незнакомое
+# значение клиент показывает как «неизвестно»; desc — смысл, границы и когда поле есть. Имя в {скобках} пути —
+# параметр пути, у GET и DELETE прочие поля — query, иначе тело JSON. Тело из одного DTO — его имя
+# (response: AuthResult), пустое — {}. Необязательного поля без значения в ответе нет: null сервер не пишет.
+request:
+  text:
+    type: string
+    required: true
+    desc: Текст для повтора, 1–200 символов после приведения к NFC
+  times:
+    type: int
+    desc: Сколько раз повторить, 1–3; по умолчанию 1
+
+response:
+  state:
+    type: string
+    required: true
+    enum: [echoed, already_echoed]
+    desc: Исход, а не отказ — already_echoed, если тот же текст уже повторяли в последнюю минуту
+  echo:
+    type: list<string>
+    required: true
+    desc: Повторённый текст, times элементов
+  echoed_at:
+    type: time
+    required: true
+    desc: Когда текст повторён; при already_echoed — момент первого повтора
+
+# Отказы — тело Problem, HTTP-статус по category: validation 422, auth 401, forbidden 403, not_found 404,
+# conflict 409, rate_limit 429, unavailable 503, internal 500. Общие коды не повторяются: token_expired и
+# session_revoked (операции со входом), maintenance и api_unavailable. Ошибки полей — код invalid_fields,
+# в ключе fields — какие коды FieldProblem бывают у каждого поля.
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      text: [required, too_long]
+      times: [out_of_range]
+  - code: rate_limited
+    category: rate_limit
+    desc: Больше 10 повторов в минуту на аккаунт; retry_after — секунды до конца окна
+
+# Golden — минимум один на ответ и по одному на каждое значение state; part — request (только тело) | response |
+# problem. Время, HH:MM, слова off и on и коды из цифр в value — в кавычках, иначе YAML прочтёт дату, число или bool.
+# json — каноническая запись value по RFC 8785: ключи по возрастанию, без пробелов; CI сверяет её с value, тесты
+# сервера и клиентов — с байтами на проводе. Токены — короткие выдуманные строки, люди — из примеров каталога.
+golden:
+  - name: request
+    part: request
+    value:
+      text: Пора полить фикус
+      times: 2
+    json: '{"text":"Пора полить фикус","times":2}'
+  - name: echoed
+    part: response
+    value:
+      state: echoed
+      echo: [Пора полить фикус, Пора полить фикус]
+      echoed_at: "2026-03-14T07:30:00.271Z"
+    json: '{"echo":["Пора полить фикус","Пора полить фикус"],"echoed_at":"2026-03-14T07:30:00.271Z","state":"echoed"}'
+  - name: already_echoed
+    part: response
+    value:
+      state: already_echoed
+      echo: [Пора полить фикус, Пора полить фикус]
+      echoed_at: "2026-03-14T07:29:41.802Z"
+    json: '{"echo":["Пора полить фикус","Пора полить фикус"],"echoed_at":"2026-03-14T07:29:41.802Z","state":"already_echoed"}'
+  - name: invalid_fields
+    part: problem
+    value:
+      code: invalid_fields
+      category: validation
+      message: Проверьте поля формы
+      fields:
+        - field: times
+          code: out_of_range
+          message: Не больше 3 повторов
+          limit: 3
+      request_id: 019ceb40-85cf-7494-8a2e-b4a7fd389979
+    json: '{"category":"validation","code":"invalid_fields","fields":[{"code":"out_of_range","field":"times","limit":3,"message":"Не больше 3 повторов"}],"message":"Проверьте поля формы","request_id":"019ceb40-85cf-7494-8a2e-b4a7fd389979"}'

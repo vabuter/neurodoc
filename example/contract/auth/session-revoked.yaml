@@ -1,0 +1,37 @@
+# auth.session_revoked — сессию отозвали: клиент обязан выйти, стереть токены и показать причину на экране входа.
+# Уходит только отозванной сессии; после кадра сервер закрывает соединение кодом 4401, а auth.refresh для неё уже
+# не сработает. Сценарий — «Обновление токена и отзыв сессии».
+
+operation: auth.session_revoked
+kind: push
+transport: websocket
+channel: /v1/push
+event: auth.session_revoked
+audience: только отозванная сессия; другие сессии аккаунта события не получают
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: user
+summary: "Сессия отозвана — клиент обязан выйти и показать причину."
+
+payload:
+  session_id:
+    type: id
+    required: true
+    desc: Отозванная сессия — та, что получает событие
+  reason:
+    type: string
+    required: true
+    enum: [revoked_by_user, refresh_reused, password_reset, account_deleted, blocked]
+    desc: >-
+      revoked_by_user — отозвана из списка сессий на другом устройстве; refresh_reused — повтор refresh-токена,
+      письмо session_terminated; password_reset — пароль сброшен; account_deleted — аккаунт удаляется через
+      14 дней; blocked — блокировка администратором
+
+golden:
+  - name: refresh_reused
+    part: payload
+    value:
+      session_id: 01a27911-acc7-72da-ac16-55fdcc096295
+      reason: refresh_reused
+    json: '{"reason":"refresh_reused","session_id":"01a27911-acc7-72da-ac16-55fdcc096295"}'

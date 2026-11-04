@@ -1,0 +1,33 @@
+<svg class="bpmn" viewBox="0 0 1260 550" role="img" aria-label="BPMN: Обновление прошивки по воздуху">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема к [здоровью парка датчиков](a9e44733-6a48-4154-9923-8ac12287c579) и [прошивке Fikus Sense](ab56cde9-d86f-46e9-b44e-38694b3e706a). Чипы: [admin.rollout](../contract/admin/rollout.yaml), [ingest.firmware](../contract/ingest/firmware.yaml), [sensors.alert](../contract/sensors/alert.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1240" height="530"/><path d="M10 120H1250M10 270H1250M110 10V540"/></g>
+<g class="lane-title"><text x="60" y="69">Администратор</text><text x="60" y="199">Сервер</text><text x="60" y="409">Датчик</text></g>
+<g class="flow"><path d="M220 65H284"/><path d="M335 82V162"/><path d="M335 208V290H375V310" stroke-dasharray="5 4"/><path d="M165 320H230"/><path d="M250 340V384"/><path d="M270 320H318"/><path d="M432 320H470"/><path d="M490 340V384"/><path d="M510 320H577"/><path d="M723 320H760"/><path d="M780 340V377"/><path d="M780 423V464"/><path d="M800 320H836"/><path d="M970 320H1005"/><path d="M1025 340V377"/><path d="M1025 423V464"/><path d="M1045 320H1071"/><path d="M1130 297V247"/><path d="M1130 213V178"/><path d="M1077 400H1215V155H1185" stroke-dasharray="5 4"/><path d="M1075 155H1000"/><path d="M980 175V207"/><path d="M918 230H866"/><path d="M980 135V85"/><path d="M1000 65H1084"/><path d="M960 65H896"/><path d="M764 65H386"/></g>
+<g class="task"><rect x="764" y="42" width="132" height="46" rx="7"/><rect x="577" y="297" width="146" height="46" rx="7"/><rect x="700" y="377" width="160" height="46" rx="7"/><rect x="836" y="290" width="134" height="60" rx="7"/><rect x="1071" y="297" width="118" height="46" rx="7"/><rect x="972" y="377" width="105" height="46" rx="7"/></g>
+<g class="sys"><rect x="269" y="162" width="132" height="46" rx="7"/><rect x="1075" y="132" width="110" height="46" rx="7"/><rect x="918" y="207" width="124" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="284" y="48" width="102" height="34" rx="4"/><rect x="1075" y="213" width="110" height="34" rx="4"/><rect x="318" y="310" width="115" height="20" rx="4"/></g>
+<g class="gw"><path d="M980 45l20 20-20 20-20-20z"/><path d="M980 135l20 20-20 20-20-20z"/><path d="M250 300l20 20-20 20-20-20z"/><path d="M490 300l20 20-20 20-20-20z"/><path d="M780 300l20 20-20 20-20-20z"/><path d="M1025 300l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="205" cy="65" r="15"/><circle cx="150" cy="320" r="15"/><circle cx="150" cy="320" r="11"/></g>
+<g class="ev-end"><circle cx="1100" cy="65" r="15"/><circle cx="850" cy="230" r="15"/><circle cx="250" cy="400" r="15"/><circle cx="490" cy="400" r="15"/><circle cx="780" cy="480" r="15"/><circle cx="1025" cy="480" r="15"/></g>
+<g class="gwsym"><path d="M974 59l12 12m0-12l-12 12M974 149l12 12m0-12l-12 12M150 314v6l4 3M244 314l12 12m0-12l-12 12M484 314l12 12m0-12l-12 12M774 314l12 12m0-12l-12 12M1019 314l12 12m0-12l-12 12"/></g>
+<g class="nt"><text x="205" y="94">Образ подписан,<tspan x="205" dy="14">в fikus-firmware</tspan></text><text x="830" y="62">Расширить волну:<tspan x="830" dy="14">25 → 50 → 100 %</tspan></text><text x="980" y="38">Волна 100 %?</text><text x="335" y="182">Волна по хэшу<tspan x="335" dy="14">серийного номера</tspan></text><text x="1130" y="152">Обновлённые<tspan x="1130" dy="14">и откаты в волне</tspan></text><text x="980" y="227">Пауза раскатки<tspan x="980" dy="14">автоматически</tspan></text><text x="150" y="349">раз в сутки</text><text x="250" y="293">Заряд &gt; 30 %?</text><text x="650" y="317">Скачать по<tspan x="650" dy="14">подписанной ссылке</tspan></text><text x="780" y="279">sha256 и<tspan x="780" dy="14">подпись верны?</tspan></text><text x="780" y="397">Удалить образ, остаться<tspan x="780" dy="14">на прежней версии</tspan></text><text x="903" y="309">Записать в свободный<tspan x="903" dy="14">раздел (ota_0/ota_1),</tspan><tspan x="903" dy="14">перезагрузиться</tspan></text><text x="1025" y="279">Показания ушли<tspan x="1025" dy="14">за 2 пробуждения?</tspan></text><text x="1130" y="317">Откат на<tspan x="1130" dy="14">прежний раздел</tspan></text><text x="1025" y="397">Пометить<tspan x="1025" dy="14">образ годным</tspan></text><g text-anchor="start"><text x="1123" y="62">Парк<tspan x="1123" dy="14">обновлён</tspan></text><text x="273" y="397">Отложить<tspan x="273" dy="14">до завтра</tspan></text><text x="513" y="404">Сон</text><text x="803" y="484">Сон</text><text x="1048" y="484">Обновлён</text></g><g text-anchor="end"><text x="953" y="159">Откатов &gt; 2 %?</text><text x="827" y="234">Ждёт разбора</text><text x="474" y="304">state?</text></g></g>
+<g class="chip-label"><text x="335" y="62">admin.rollout</text><text x="1130" y="227">sensors.alert</text><text x="375" y="324">ingest.firmware</text></g>
+<g class="lbl"><text x="341" y="236">available, если<tspan x="341" dy="13">датчик в волне</tspan></text><text x="256" y="354">нет</text><text x="276" y="314">да</text><text x="496" y="354">up_to_date</text><text x="516" y="314">available</text><text x="786" y="354">нет</text><text x="806" y="314">да</text><text x="1031" y="354">да</text><text x="1049" y="314">нет</text><text x="986" y="189">да</text><text x="986" y="128">нет</text><text x="1006" y="59">да</text><g text-anchor="middle"><text x="335" y="76">версия, 5 %</text><text x="1130" y="241">firmware_failed</text></g><g text-anchor="end"><text x="954" y="59">нет</text><text x="744" y="59">следующая волна</text><text x="1209" y="392">пачка с новой версией</text></g></g>
+</svg>

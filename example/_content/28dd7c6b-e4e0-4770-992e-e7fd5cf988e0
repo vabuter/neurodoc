@@ -1,0 +1,45 @@
+# Реестр DTO
+
+DTO — переиспользуемый тип: структура, которая встречается в нескольких операциях или вложена в другой DTO. Поле, которое встречается в одной операции, описывается в ней самой и в DTO не выносится. Имя файла совпадает с именем DTO — contract/dto/Имя.yaml, имя в PascalCase. Как называть поля и какие бывают типы, сказано в [соглашениях контракта](af7dad38-44c2-4995-9f16-bf612c41bc19); сами операции — в [реестре операций](46a3b885-d219-41b0-9e37-648a0f894800).
+
+В колонке «где используется» через точку с запятой указаны вложения: Plant.plan значит, что DTO приходит внутри поля plan растения.
+
+## Общие
+
+| DTO | назначение | где используется | статус |
+|---|---|---|---|
+| [Problem](../contract/dto/Problem.yaml) | Тело любого отказа. | ответ с отказом у любой операции, включая ingest.readings и ingest.firmware; общие коды token_expired, session_revoked, maintenance, api_unavailable | live |
+| [FieldProblem](../contract/dto/FieldProblem.yaml) | Ошибка одного поля запроса. | Problem.fields при отказах validation: auth.register, auth.reset_complete, account.update, plants.create и другие | live |
+
+## Аккаунт и сессии
+
+| DTO | назначение | где используется | статус |
+|---|---|---|---|
+| [Account](../contract/dto/Account.yaml) | Аккаунт пользователя глазами самого пользователя. | account.get, account.update; AuthResult.account | live |
+| [Session](../contract/dto/Session.yaml) | Сессия — вошедшее устройство. | auth.sessions | live |
+| [AuthResult](../contract/dto/AuthResult.yaml) | Результат шага входа: токены или следующий шаг. | auth.login, auth.confirm_email, auth.reset_complete, auth.totp_verify, auth.refresh | live |
+| [AdminUser](../contract/dto/AdminUser.yaml) | Пользователь глазами администратора: статус и счётчики без личного содержимого. | admin.users, admin.user_update | draft |
+
+## Растения и уход
+
+| DTO | назначение | где используется | статус |
+|---|---|---|---|
+| [Plant](../contract/dto/Plant.yaml) | Растение дома со всеми свойствами, планом и ближайшими задачами. | plants.list, plants.get, plants.create, plants.update, plants.archive | live |
+| [Species](../contract/dto/Species.yaml) | Вид из справочника с базовым профилем ухода. | species.search; admin.species_decide — профиль ухода при одобрении | live |
+| [SpeciesSuggestion](../contract/dto/SpeciesSuggestion.yaml) | Предложение нового вида и решение модератора. | species.suggest, admin.species_queue, admin.species_decide | live |
+| [CarePlan](../contract/dto/CarePlan.yaml) | План ухода растения: пункт на каждый вид задачи. | Plant.plan в ответах plants.get и plants.create | live |
+| [CarePlanItem](../contract/dto/CarePlanItem.yaml) | Пункт плана: интервал, ближайшая дата и множители «почему так». | CarePlan.items | live |
+| [CareTask](../contract/dto/CareTask.yaml) | Задача ухода с датой и состоянием. | care.tasks, care.complete, care.snooze, care.skip, событие care.task_due; Plant.next_tasks | live |
+| [CareLogEntry](../contract/dto/CareLogEntry.yaml) | Запись журнала ухода; записи только добавляются. | care.log | live |
+| [Photo](../contract/dto/Photo.yaml) | Фото растения и его обработка. | photos.confirm; Plant.cover_photo и Plant.photos | live |
+
+## Дом и датчики
+
+| DTO | назначение | где используется | статус |
+|---|---|---|---|
+| [House](../contract/dto/House.yaml) | Дом: настройки, участники, отпуск. | houses.list, houses.get, houses.update, houses.vacation, invites.accept | live |
+| [HouseMember](../contract/dto/HouseMember.yaml) | Участник дома и его роль. | houses.member_update; House.members в houses.get | live |
+| [Sensor](../contract/dto/Sensor.yaml) | Датчик Fikus Sense: состояние, калибровка, последнее показание. | sensors.claim, sensors.list, sensors.update, sensors.calibrate, admin.sensors; Plant.sensor | draft |
+| [SensorReading](../contract/dto/SensorReading.yaml) | Одно показание датчика. | ingest.readings, sensors.readings; Sensor.last_reading | draft |
+
+AdminUser, Sensor и SensorReading — draft вместе с операциями `admin.*`, `sensors.*` и `ingest.*`: до пилота на 20 датчиках и запуска админки их можно менять несовместимо. Live-DTO меняется только совместимо — новым необязательным полем или новым значением enum, которое клиент обязан пережить как «неизвестное». Исключение — Plant.sensor: live-DTO Plant вкладывает draft-DTO Sensor, поэтому до пилота это поле считается draft, и клиенты plants.get и plants.list переживают и его отсутствие, и незнакомые поля внутри.

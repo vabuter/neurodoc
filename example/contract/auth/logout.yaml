@@ -1,0 +1,28 @@
+# auth.logout — выход на этом устройстве: сессия из sid access-токена отзывается сразу (кэш отозванных сессий),
+# её refresh-токен и токен мобильного пуша удаляются. Чужие сессии закрывает auth.session_revoke.
+# Своей схемы нет; отзыв сессии и его последствия — на схеме «Обновление токена и отзыв сессии».
+
+operation: auth.logout
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/logout
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: user
+summary: "Выход: отзыв текущей сессии."
+
+request: {}    # сессия берётся из access-токена
+response: {}   # клиент стирает токены, даже если ответ не дошёл: сессия всё равно истечёт
+
+golden:
+  - name: request
+    part: request
+    value: {}
+    json: '{}'
+  - name: ok
+    part: response
+    value: {}
+    json: '{}'

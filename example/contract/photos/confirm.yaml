@@ -1,0 +1,48 @@
+# photos.confirm — файл загружен, можно обрабатывать. Сервер проверяет объект в хранилище и одной транзакцией
+# переводит фото в processing и ставит задание photo-process (ADR-003: задание не теряется и не бывает про
+# несуществующие данные). Готовность приходит событием houses.changed со scope plants. Сценарий — «Загрузка фото растения».
+
+operation: photos.confirm
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/photos/{photo_id}/confirm
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Подтвердить загрузку — сервер ставит фото в обработку."
+
+request:
+  photo_id:
+    type: id
+    required: true
+    desc: >-
+      Фото из photos.upload_url — параметр пути; тела нет. Не позже чем через час после выдачи ссылки, иначе
+      фото и объект удалит photo-orphans. Повтор безвреден: ответ — текущее состояние фото
+
+# photo-process вырезает EXIF вместе с геометкой (фото подоконника не должно выдавать адрес), до этого читает
+# из него taken_at, делает WebP 1280 px и превью 320 px. Первое фото растения становится обложкой.
+response: Photo      # state processing; url, thumb_url, размеры и taken_at появятся в ready
+
+errors:
+  - code: upload_missing
+    category: conflict
+    desc: Объекта в хранилище нет — PUT не дошёл; клиент загружает заново по новой ссылке
+  - code: too_large
+    category: validation
+    desc: Фактический размер объекта больше 10485760 байт — проверка подписи на стороне хранилища не единственная
+  - code: not_found
+    category: not_found
+    desc: Фото нет — истёк час, и photo-orphans его удалила
+
+golden:
+  - name: processing
+    part: response
+    value:
+      id: 01a292bb-accd-735b-879d-cd8d72ccaca0
+      plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+      state: processing
+      created_at: "2026-12-20T09:15:02.733Z"
+    json: '{"created_at":"2026-12-20T09:15:02.733Z","id":"01a292bb-accd-735b-879d-cd8d72ccaca0","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","state":"processing"}'

@@ -1,0 +1,33 @@
+<svg class="bpmn" viewBox="0 0 1200 510" role="img" aria-label="BPMN: Приглашение в дом: код, просмотр без входа и вступление">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема к разделу [приглашения в дом](4c5c97f8-bbc1-4cc2-ab98-8e65c4cbb407); ветка «нет аккаунта» продолжается [схемой регистрации](e0f22a1c-5d1c-461f-bf72-bb407b8b10fa). Чипы: [invites.create](../contract/invites/create.yaml), [invites.preview](../contract/invites/preview.yaml), [invites.accept](../contract/invites/accept.yaml), [houses.changed](../contract/houses/changed.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1180" height="110"/><rect x="10" y="120" width="1180" height="160"/><rect x="10" y="280" width="1180" height="110"/><rect x="10" y="390" width="1180" height="110"/><path d="M110 10V500"/></g>
+<g class="lane-title"><text x="60" y="62">Владелец<tspan x="60" dy="14">(Анна)</tspan></text><text x="60" y="204">Сервер</text><text x="60" y="332">Клиент<tspan x="60" dy="14">приглашённого</tspan></text><text x="60" y="442">Приглашённый<tspan x="60" dy="14">(Борис)</tspan></text></g>
+<g class="flow"><path d="M165 65H195"/><path d="M270 88V150"/><path d="M324 160H360"/><path d="M380 180V224"/><path d="M400 160H460V88"/><path d="M535 65H550V417" stroke-dasharray="5 4"/><path d="M616 440H680V352"/><path d="M680 318V260"/><path d="M680 220V176"/><path d="M700 240H830V312"/><path d="M910 335H940"/><path d="M960 355V425"/><path d="M980 335H1006"/><path d="M1060 318V260"/><path d="M1040 240H941"/><path d="M1080 240H1134"/><path d="M1060 220V177"/><path d="M1006 160H941"/></g>
+<g class="task"><rect x="195" y="42" width="150" height="46" rx="7"/><rect x="385" y="42" width="150" height="46" rx="7"/><rect x="750" y="312" width="160" height="46" rx="7"/><rect x="484" y="417" width="132" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="216" y="150" width="109" height="20" rx="4"/><rect x="1006" y="143" width="109" height="34" rx="4"/><rect x="622" y="318" width="115" height="34" rx="4"/><rect x="1006" y="318" width="109" height="34" rx="4"/></g>
+<g class="gw"><path d="M380 140l20 20-20 20-20-20z"/><path d="M680 220l20 20-20 20-20-20z"/><path d="M1060 220l20 20-20 20-20-20z"/><path d="M960 315l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="150" cy="65" r="15"/><circle cx="960" cy="440" r="15"/><circle cx="960" cy="440" r="12"/></g>
+<g class="ev-end"><circle cx="680" cy="160" r="15"/><circle cx="925" cy="240" r="15"/><circle cx="925" cy="160" r="15"/></g>
+<g class="ev-err"><circle cx="380" cy="240" r="15"/><circle cx="1150" cy="240" r="15"/></g>
+<g class="gwsym"><path d="M374 154l12 12m0-12l-12 12M384 232l-7 9h6l-7 8M674 234l12 12m0-12l-12 12M1054 234l12 12m0-12l-12 12M1154 232l-7 9h6l-7 8M954 329l12 12m0-12l-12 12M954 438h6v-4l6 6-6 6v-4h-6z"/></g>
+<g class="nt"><text x="150" y="94">Нажала<tspan x="150" dy="14">«Пригласить»</tspan></text><text x="270" y="62">Выбрать роль: member<tspan x="270" dy="14">или helper с датой</tspan></text><text x="460" y="62">Переслать ссылку<tspan x="460" dy="14">или продиктовать код</tspan></text><text x="364" y="144" text-anchor="end">Ответ?</text><text x="380" y="270">invite_limit: 5 активных,<tspan x="380" dy="14">house_member_limit: 10</tspan></text><text x="653" y="244" text-anchor="end">state?</text><text x="703" y="157" text-anchor="start">Попросите новое<tspan x="703" dy="14">приглашение</tspan></text><text x="1076" y="264" text-anchor="start">state?</text><text x="1144" y="203">house_limit:<tspan x="1144" dy="14">уже 5 домов</tspan></text><text x="925" y="217">Открыть дом</text><text x="925" y="137">Борис в доме</text><text x="830" y="332">Приглашение от Анны:<tspan x="830" dy="14">«Квартира на Лесной»</tspan></text><text x="960" y="308">Есть аккаунт?</text><text x="550" y="437">Открыть ссылку<tspan x="550" dy="14">с кодом 7K3QX9MD</tspan></text><text x="982" y="437" text-anchor="start">К схеме регистрации:<tspan x="982" dy="14">код ждёт в клиенте</tspan></text></g>
+<g class="chip-label"><text x="270" y="164">invites.create</text><text x="1060" y="157">houses.changed</text><text x="680" y="332">invites.preview</text><text x="1060" y="332">invites.accept</text></g>
+<g class="lbl"><text x="1060" y="171" text-anchor="middle">участникам</text><text x="680" y="346" text-anchor="middle">без входа</text><text x="1060" y="346" text-anchor="middle">после входа</text><text x="386" y="194">лимит</text><text x="454" y="114" text-anchor="end">ok: код и ссылка<tspan x="454" dy="13">на 72 ч</tspan></text><text x="558" y="270">вне системы:<tspan x="558" dy="13">мессенджер, голос</tspan></text><text x="674" y="200" text-anchor="end">expired, used,<tspan x="674" dy="13">invite_invalid</tspan></text><text x="706" y="234">valid</text><text x="966" y="369">нет</text><text x="986" y="329">да</text><text x="1036" y="234" text-anchor="end">already_member</text><text x="1066" y="210">joined</text></g>
+</svg>

@@ -1,0 +1,58 @@
+# sensors.alert — тревога датчика: пропал (offline), вернулся (online), разрядился (battery_low), не поднял новую
+# прошивку (firmware_failed). Тревога пишется только при смене состояния, поэтому повторный проход sensor-watch
+# ничего не дублирует. Отпуск её не трогает: заряжать будет помощник, но знать должны все. Сценарий — «Цикл датчика».
+
+operation: sensors.alert
+kind: push
+transport: websocket
+channel: /v1/push
+event: sensors.alert
+audience: >-
+  все участники дома на связи, включая помощника. offline и battery_low дублирует мобильный пуш FCM/APNs —
+  он ждёт конца тихих часов получателя; online и firmware_failed идут только событием
+status: draft
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Тревога датчика: нет связи, снова на связи, низкий заряд, сбой прошивки."
+
+payload:
+  sensor_id:
+    type: id
+    required: true
+  house_id:
+    type: id
+    required: true
+  plant_id:
+    type: id
+    desc: Растение, на карточке которого плашка; нет — датчик стоит в доме без растения
+  alert:
+    type: string
+    required: true
+    enum: [offline, online, battery_low, firmware_failed]
+    desc: >-
+      offline — 3 ч без пачек, план полива возвращается к расписанию; online — первая пачка после offline,
+      без пуша; battery_low — заряд ниже 15 %, повторно только после подъёма выше 30 %; firmware_failed —
+      датчик откатил новую прошивку: в пачке снова прежняя версия, админка считает это откатом раскатки
+  at:
+    type: time
+    required: true
+    desc: Когда сервер заметил смену состояния — у offline это проход sensor-watch, а не последняя пачка
+  battery_pct:
+    type: int
+    desc: Последний известный заряд — у battery_low всегда, у остальных, если пачки были
+
+# Клиент показывает плашку на карточке растения и перезапрашивает sensors.list; запись о тревоге уже в журнале.
+# 15 декабря: датчик у монстеры молчит с 04:30 UTC, sensor-watch замечает это в 07:35 UTC; заряд уже ниже 15 %,
+# тревога battery_low о нём пришла раньше и повторно не придёт.
+golden:
+  - name: offline
+    part: payload
+    value:
+      sensor_id: 01a19d36-1b92-7623-bbca-eb6d4002ae45
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+      alert: offline
+      at: "2026-12-15T07:35:04.512Z"
+      battery_pct: 12
+    json: '{"alert":"offline","at":"2026-12-15T07:35:04.512Z","battery_pct":12,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","sensor_id":"01a19d36-1b92-7623-bbca-eb6d4002ae45"}'

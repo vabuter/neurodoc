@@ -1,0 +1,86 @@
+# ============================================================
+#  Neurodoc Editor — что не попадает в репозиторий
+# ============================================================
+
+# ---------- .NET / Visual Studio (windows/) ----------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Pp]ublish/
+x64/
+x86/
+ARM64/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.VisualState.xml
+*.cache
+*.pdb
+*.dll.config
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# ---------- Android / Gradle (android/) ----------
+.gradle/
+build/
+captures/
+.cxx/
+.externalNativeBuild/
+.kotlin/
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+*.hprof
+
+# Ключи подписи — в репозиторий не кладём
+*.jks
+*.keystore
+
+# Gradle wrapper нужен в репозитории — оговариваем явно
+!gradle/wrapper/gradle-wrapper.jar
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*~
+
+# ---------- Локальное окружение разработчика ----------
+# Настройки приложений и error.log живут вне репозитория (%APPDATA%\NeurodocEditor,
+# XDG-папки ~/.config и ~/.local/state/neurodoc-editor, приватная папка Android-приложения),
+# здесь только личные файлы инструментов.
+.claude/settings.local.json
+
+# ---------- ОС ----------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ---------- Временное ----------
+*.log
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# ---------- Rust (linux/) ----------
+linux/target/
+
+# ---------- Сайт-книга (book/) ----------
+# Собранный mdBook: на GitHub Pages его выкладывает .github/workflows/pages.yml
+book/build/

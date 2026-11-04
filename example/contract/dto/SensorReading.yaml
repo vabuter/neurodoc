@@ -1,0 +1,62 @@
+# SensorReading — одно показание Fikus Sense. Датчик присылает его в ingest.readings без moisture_pct,
+# сервер добавляет проценты при приёме по точкам калибровки датчика; в таком виде показание уходит в
+# Sensor.last_reading и в sensors.readings. Draft вместе с датчиками — до пилота на 20 датчиках.
+
+dto: SensorReading
+status: draft
+since: v1
+clients: [app, android, sense, server]
+summary: "Одно показание датчика."
+
+fields:
+  at:
+    type: time
+    required: true
+    desc: >-
+      Момент замера по часам датчика (SNTP). Время из будущего больше чем на 5 мин сервер заменяет моментом
+      приёма, показание старше 7 дней не принимает; в sensors.readings с шагом hour и day — начало интервала
+  moisture_raw:
+    type: int
+    required: true
+    desc: >-
+      Сырое значение ёмкостного щупа, АЦП 0–4095: в воздухе высокое, в воде низкое. Хранится всегда, поэтому
+      после новой калибровки проценты можно пересчитать, не теряя истории
+  moisture_pct:
+    type: int
+    desc: >-
+      Влажность почвы 0–100 %, её считает только сервер: (raw_dry − raw) × 100 / (raw_dry − raw_wet), половина
+      вверх, с ограничением 0–100. В запросе датчика поля нет — калибровку меняют, не трогая прошивку
+  temperature_dc:
+    type: int
+    required: true
+    desc: Температура у горшка в десятых долях °C, 215 = 21,5 °C — дробных чисел в контракте нет (ADR-017)
+  light_lux:
+    type: int
+    required: true
+    desc: Освещённость в люксах; ночью у окна — 0, и это не сбой
+  battery_mv:
+    type: int
+    required: true
+    desc: >-
+      Напряжение аккумулятора LiFePO4 в мВ. Проценты заряда (Sensor.battery_pct) сервер берёт из таблицы
+      разряда: кривая LiFePO4 почти плоская до самого конца, и линейная формула врала бы на десятки процентов
+
+# Два golden: так показание приходит от датчика и так его отдаёт API — одно и то же показание у Бенджи.
+golden:
+  - name: from_device
+    value:
+      at: "2026-12-15T09:30:01.000Z"
+      moisture_raw: 2210
+      temperature_dc: 215
+      light_lux: 5400
+      battery_mv: 3240
+    json: '{"at":"2026-12-15T09:30:01.000Z","battery_mv":3240,"light_lux":5400,"moisture_raw":2210,"temperature_dc":215}'
+  - name: in_response
+    value:
+      at: "2026-12-15T09:30:01.000Z"
+      moisture_raw: 2210
+      moisture_pct: 41
+      temperature_dc: 215
+      light_lux: 5400
+      battery_mv: 3240
+    json: '{"at":"2026-12-15T09:30:01.000Z","battery_mv":3240,"light_lux":5400,"moisture_pct":41,"moisture_raw":2210,"temperature_dc":215}'

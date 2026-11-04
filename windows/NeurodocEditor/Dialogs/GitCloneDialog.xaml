@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="NeurodocEditor.Dialogs.GitCloneDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Клонировать с сервера"
+    CloseButtonText="Отмена">
+
+    <Grid MinWidth="480">
+        <!-- Форма: адрес, название, папка -->
+        <StackPanel x:Name="FormPane" Spacing="12">
+            <TextBox x:Name="UrlBox" Header="Адрес репозитория (HTTPS)"
+                     PlaceholderText="https://gitlab.com/you/project.git"
+                     TextChanged="OnUrlChanged" />
+            <TextBox x:Name="NameBox" Header="Название проекта"
+                     PlaceholderText="подставится из адреса" />
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="PathBox" Header="Папка на диске"
+                         PlaceholderText="C:\путь\к\каталогу" />
+                <Button Grid.Column="1" Content="Обзор…" VerticalAlignment="Bottom"
+                        Click="OnBrowseClick" />
+            </Grid>
+            <InfoBar x:Name="ErrorBar" Severity="Error" IsClosable="False" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="CloneButton" Content="Клонировать"
+                        Style="{StaticResource AccentButtonStyle}" Click="OnCloneClick" />
+                <ProgressRing x:Name="Busy" Width="18" Height="18" IsActive="False"
+                              VerticalAlignment="Center" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Подтверждение очистки непустой папки: второй ContentDialog поверх открытого
+             показать нельзя, поэтому предупреждение — сменной панелью -->
+        <StackPanel x:Name="ConfirmPane" Spacing="12" Visibility="Collapsed" MinWidth="480">
+            <TextBlock Text="Папка не пуста" FontWeight="SemiBold" FontSize="15" />
+            <TextBlock x:Name="ConfirmText" TextWrapping="Wrap" FontSize="13" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Удалить и клонировать" Style="{StaticResource AccentButtonStyle}"
+                        Click="OnConfirmClick" />
+                <Button Content="Назад" Click="OnBackClick" />
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</ContentDialog>

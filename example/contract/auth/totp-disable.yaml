@@ -1,0 +1,65 @@
+# auth.totp_disable — отключение второго фактора: пароль и код из приложения или код восстановления. Неверные данные —
+# отказ категории auth, но сессия жива: клиент показывает ошибку под полем и токен не обновляет. Роли admin второй
+# фактор обязателен. Сценарий — «Подключение второго фактора и коды восстановления», нижняя ветка «Отключение».
+
+operation: auth.totp_disable
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/totp/disable
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: user
+summary: "Отключение второго фактора."
+
+request:
+  password:
+    type: string
+    required: true
+  code:
+    type: string
+    desc: 6 цифр из приложения; ровно одно из code и recovery_code
+  recovery_code:
+    type: string
+    desc: Код восстановления XXXX-XXXX — если телефона под рукой нет
+
+response: {}   # секрет и коды восстановления удаляются
+
+errors:
+  - code: invalid_credentials
+    category: auth
+    desc: Неверный пароль
+  - code: invalid_code
+    category: auth
+    desc: Неверный или уже использованный код
+  - code: admin_totp_required
+    category: forbidden
+    desc: У роли admin второй фактор обязателен и не отключается; клиент кнопку «Отключить» ей не показывает
+  - code: invalid_fields
+    category: validation
+    fields:
+      code: [required]             # нет ни code, ни recovery_code
+      recovery_code: [not_allowed] # прислали оба
+
+golden:
+  - name: request
+    part: request
+    value:
+      password: демо-пароль-бориса
+      code: "771305"
+    json: '{"code":"771305","password":"демо-пароль-бориса"}'
+  - name: ok
+    part: response
+    value: {}
+    json: '{}'
+  - name: admin_totp_required
+    part: problem
+    value:
+      code: admin_totp_required
+      category: forbidden
+      message: Администратору второй фактор обязателен
+      fields: []
+      request_id: 01a332c3-6d5b-787f-bfbc-375d4ce982a1
+    json: '{"category":"forbidden","code":"admin_totp_required","fields":[],"message":"Администратору второй фактор обязателен","request_id":"01a332c3-6d5b-787f-bfbc-375d4ce982a1"}'

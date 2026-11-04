@@ -1,0 +1,38 @@
+# /etc/systemd/system/fikus-api.service — сервис API Fikus
+# Ставится [на шаге 2 установки](b191c65b-445a-41c5-9b64-cb4f75498cd5); что лежит в fikus.toml и fikus.env — [конфигурация сервера](5ec70900-74c9-44dd-b9b7-88c75a8c0618).
+# Логи fikus-api пишет сам в /var/log/fikus/api.log, а не в journald: формат и ротация — [наблюдаемость](d0355caf-e23e-4657-9d66-06a2dd021a67).
+# При релизе сервис перезапускается после переключения ссылки на бинарник — [деплой и CI](42c2e3fd-a5e1-4c67-b067-4c38d858ced3).
+
+[Unit]
+Description=Fikus API
+After=network-online.target postgresql.service
+Wants=network-online.target
+# Без базы API бесполезен. В Debian обёртка postgresql.service стартует после кластера 16/main,
+# поэтому After на неё ждёт настоящую готовность базы
+Requires=postgresql.service
+
+[Service]
+User=fikus
+Group=fikus
+# Файл 0600 root: его читает systemd до сброса прав, процессу достаются только переменные
+EnvironmentFile=/etc/fikus/fikus.env
+# Ссылка на текущий релиз: деплой меняет её и перезапускает сервис
+ExecStart=/opt/fikus/bin/fikus-api -config /etc/fikus/fikus.toml
+Restart=on-failure
+RestartSec=2
+# Каждое соединение WebSocket — дескриптор; стандартных 1024 хватило бы лишь на тысячу клиентов
+LimitNOFILE=65536
+# Столько fikus-api по SIGTERM дожидается WebSocket-клиентов и текущих задач, потом SIGKILL
+TimeoutStopSec=20
+
+# Песочница: на диск процесс пишет только логи и флаг обслуживания (/var/lib/fikus)
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/fikus /var/log/fikus
+ProtectHome=yes
+PrivateTmp=yes
+# Порт 8080 на 127.0.0.1 не требует привилегий — capabilities не нужны совсем
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

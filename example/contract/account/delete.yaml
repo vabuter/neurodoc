@@ -1,0 +1,55 @@
+# account.delete — удаление аккаунта с отсрочкой 14 дней: deletion_at = сейчас + 14 дней, все сессии отозваны
+# (auth.session_revoked с reason account_deleted), письмо deletion_scheduled. Любой успешный вход до срока удаление
+# отменяет, после срока аккаунт и его дома по правилу передачи владения убирает account-purge.
+# Сценарий — «Удаление аккаунта: отсрочка, отмена входом и очистка».
+
+operation: account.delete
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/me/delete
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Удаление аккаунта с отсрочкой 14 дней."
+
+request:
+  password:
+    type: string
+    required: true
+    desc: Текущий пароль — угнанной сессии без пароля удалить аккаунт нельзя
+  totp_code:
+    type: string
+    desc: 6 цифр из приложения; обязателен, если включён второй фактор
+
+response:
+  deletion_at:
+    type: time
+    required: true
+    desc: Когда аккаунт удалят; клиент показывает «Аккаунт будет удалён ДАТА» и выходит
+
+errors:
+  - code: invalid_credentials
+    category: auth
+    desc: Неверный пароль — сессия жива, токен не обновляется
+  - code: invalid_code
+    category: auth
+    desc: Неверный код второго фактора
+  - code: totp_code_required
+    category: validation
+    desc: Второй фактор включён, а totp_code нет
+
+golden:
+  - name: request
+    part: request
+    value:
+      password: демо-пароль-бориса
+      totp_code: "861204"
+    json: '{"password":"демо-пароль-бориса","totp_code":"861204"}'
+  - name: ok
+    part: response
+    value:
+      deletion_at: "2026-12-31T07:58:13.640Z"
+    json: '{"deletion_at":"2026-12-31T07:58:13.640Z"}'

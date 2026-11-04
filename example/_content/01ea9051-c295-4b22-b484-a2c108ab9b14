@@ -1,0 +1,32 @@
+# /etc/nginx/snippets/fikus-tls.conf — общие параметры TLS для всех server-блоков
+# Подключается include-ом в каждый server-блок :443 [основного конфига nginx](a9544132-375e-4da2-aa98-1f8955396bae) — только на уровне server.
+# Сертификат выпущен [на шаге 3 установки](5114115d-469e-4944-8304-ad658dd533ab): один на все пять имён, certbot --webroot.
+# Срок действия смотрит [мониторинг](78840182-e4a1-4c97-8882-32fa5457743a): тревога за 14 дней до конца срока.
+
+# certbot называет сертификат по первому -d, поэтому путь — fikus.example для всех имён
+ssl_certificate     /etc/letsencrypt/live/fikus.example/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/fikus.example/privkey.pem;
+
+# TLS 1.2 оставлен ради Android 8–9: minSdk 26, а TLS 1.3 там нет. TLS 1.0 и 1.1 выключены
+ssl_protocols TLSv1.2 TLSv1.3;
+
+# Для TLS 1.2 — только ECDHE с AEAD: AES-GCM и CHACHA20. Наборы TLS 1.3 эта строка не трогает
+ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+
+# Слабых наборов в списке нет, поэтому выбирает клиент: телефон без аппаратного AES возьмёт CHACHA20
+ssl_prefer_server_ciphers off;
+
+# Возобновление сессий без полного рукопожатия: 10 МБ — около 40 000 сессий, кэш общий для всех имён
+ssl_session_cache shared:fikus_tls:10m;
+ssl_session_timeout 1d;
+
+# Тикеты выключены: ключ тикетов на одном сервере не ротируется, а живущий месяцами ключ
+# позволил бы расшифровать записанный трафик задним числом
+ssl_session_tickets off;
+
+# ssl_stapling не включается: Let's Encrypt с 2025 года не публикует OCSP, в сертификатах нет
+# адреса ответчика — скреплять нечего (отзыв проверяется по CRL), nginx писал бы только предупреждение.
+
+# HSTS на год только здесь: повтор в server-блоке отправил бы заголовок дважды.
+# always — чтобы он был и на ответах 503 режима обслуживания
+add_header Strict-Transport-Security "max-age=31536000" always;

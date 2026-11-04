@@ -1,0 +1,68 @@
+# Деплой и CI
+
+Код попадает на сервер одной дорогой: push → CI → тег → скрипт выкладки. Руками на проде ничего не собирается и не правится; сам сервер до первого релиза готовит [установка с нуля](3a9c6939-c7b9-44b0-962b-33355477060e).
+
+## На каждый push
+
+CI на git.fikus.example запускает пять задач параллельно. Красный main чинится первым, раньше любой новой работы: пока он красный, следующий push не на чем проверить и стенд стоит.
+
+| job | что проверяет | время |
+|---|---|---|
+| server | go vet, staticcheck, go test ./... против PostgreSQL 16 в контейнере: миграции с нуля и golden-тесты всех операций | ~4 мин |
+| contract | scripts/contract-check: схема YAML, каноничность golden, реестры совпадают с папкой contract/ | ~30 с |
+| web | pnpm lint, pnpm test, pnpm -r build | ~3 мин |
+| android | ./gradlew lint testDebugUnitTest | ~6 мин |
+| firmware | idf.py build | ~2 мин |
+
+Что сверяет scripts/contract-check и почему первичен YAML, а не код, объясняет [как ведётся контракт API](c35dca17-bd95-4170-a9eb-aeb673e199dc).
+
+## Стенд
+
+Зелёный main сам уходит на fikus-stage-1 тем же скриптом, что и релиз, только с версией из git describe (v0.9.0-14-g3f2a1c9) и именами *.stage.fikus.example. Стенд — копия прода с отдельной базой и выдуманными данными; на нём перед каждым тегом проходят [планы ручной проверки](469f621b-c852-4032-a9ef-69ceff514810).
+
+## Релиз
+
+1. Планы ручной проверки пройдены на стенде, найденное починено.
+2. CHANGELOG.md: раздел «Не выпущено» получает номер версии и дату, над ним заводится новый пустой.
+3. Тег vX.Y.Z на main. CI собирает fikus-api — CGO_ENABLED=0 go build -trimpath -ldflags "-X main.version=$TAG": статический бинарник не зависит от libc сервера, -trimpath убирает из него пути машины сборки, версия потом видна в [разделе «Сборка» админки](97456252-2fd1-4272-b60d-10f79bb64cda). Статику собирает pnpm -r build.
+4. Выкладка — scripts/deploy.sh, его суть:
+
+```bash
+TAG=v0.9.1; REL=/opt/fikus/releases/$TAG
+rsync -a dist/server/ "fikus-prod-1:$REL/"
+if [ "${MAINTENANCE:-0}" = 1 ]; then   # в релизе миграция с блокировкой
+  ssh fikus-prod-1 sudo -u fikus touch /var/lib/fikus/maintenance.flag
+fi
+ssh fikus-prod-1 "ln -sfn $REL/fikus-api /opt/fikus/bin/fikus-api.new && mv -T /opt/fikus/bin/fikus-api.new /opt/fikus/bin/fikus-api"
+ssh fikus-prod-1 sudo systemctl restart fikus-api
+curl -fsS --retry 10 --retry-delay 3 --retry-all-errors https://api.fikus.example/health
+ssh fikus-prod-1 sudo -u fikus rm -f /var/lib/fikus/maintenance.flag
+for app in www app admin; do
+  rsync -a "dist/$app/" "fikus-prod-1:/var/www/fikus/$app/$TAG/"
+  ssh fikus-prod-1 "ln -sfn $TAG /var/www/fikus/$app/current.new && mv -T /var/www/fikus/$app/current.new /var/www/fikus/$app/current"
+done
+```
+
+- Флаг [режима обслуживания](23f1e856-85b0-4501-a8e9-fbc8c6999b6a) ставится, только если миграция берёт блокировку: MAINTENANCE=1 задаёт выпускающий, это видно на ревью миграции. Обычный релиз идёт без закрытия — перезапуск занимает секунды, и на это время nginx отвечает за API сам: Problem api_unavailable с retry_after 30.
+- Ссылки переключаются через mv -T: rename атомарен, ни один запрос не застанет ссылку недописанной. Статика устроена так же — nginx отдаёт каталог версии через ссылку current.
+- Сначала сервер, потом статика: новый API понимает старых клиентов, а не наоборот.
+- [Unit fikus-api.service](00e0ec78-2e83-47f6-afe6-3249b219d8b1) даёт процессу 20 с на остановку: открытые WebSocket-клиенты и текущие задачи дорабатывают, а не рвутся на полуслове.
+- /health отвечает и при поднятом флаге: здоровье — не операция контракта, режим обслуживания его не закрывает. Не дождались — флаг остаётся, выкладка красная, дальше откат.
+- На сервере хранятся три последних релиза, и бинарники, и статика; более старые удаляет тот же скрипт.
+
+5. Сразу после выкладки — дымовой прогон: отмеченные строки планов ручной проверки, уже на проде.
+
+CI ходит на сервер пользователем deploy, которому принадлежат каталоги релизов, а sudo разрешён ровно на две вещи. Заводится один раз:
+
+```bash
+useradd --create-home --shell /bin/bash deploy
+chown -R deploy: /opt/fikus/releases /opt/fikus/bin /var/www/fikus/www /var/www/fikus/app /var/www/fikus/admin
+cat > /etc/sudoers.d/deploy <<'EOF'
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart fikus-api
+deploy ALL=(fikus) NOPASSWD: /usr/bin/touch /var/lib/fikus/maintenance.flag, /usr/bin/rm -f /var/lib/fikus/maintenance.flag
+EOF
+```
+
+## Откат
+
+Откат — те же переключения ссылок на предыдущую версию и systemctl restart fikus-api, без пересборки. Это работает только потому, что миграции идут вперёд и откатных скриптов нет: старый код обязан жить на новой схеме. Поэтому несовместимая правка растягивается на три релиза — добавить колонку, начать ею пользоваться, удалить старую; правило подробно — в [хранении данных](ecf6dfa8-05f3-4264-a02b-66f6b465e863). Что сейчас на проде и какая версия схемы, видно в «Сборке» админки.

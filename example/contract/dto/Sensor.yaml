@@ -1,0 +1,96 @@
+# Sensor — датчик Fikus Sense глазами дома: где стоит, на связи ли, заряд, калибровка, последнее показание.
+# Отдают sensors.claim, sensors.list, sensors.update, sensors.calibrate и admin.sensors, вложен в Plant.sensor.
+# Грунт у датчика не хранится: пороги влажности берутся у растения (Plant.soil). Draft до пилота на 20 датчиках.
+
+dto: Sensor
+status: draft
+since: v1
+clients: [app, admin, android, server]
+summary: "Датчик Fikus Sense: состояние, калибровка, последнее показание."
+
+fields:
+  id:
+    type: id
+    required: true
+    desc: UUIDv7; в путях API датчик адресуется только им — серийный номер для людей, а не для программ
+  serial:
+    type: string
+    required: true
+    desc: Серийный номер FS1-XXXXXX с корпуса — для поддержки; тот же приходит в поле serial каждой пачки
+  house_id:
+    type: id
+    required: true
+    desc: Дом, к которому датчик привязан кодом с коробки; отвязать датчик от дома пока можно только через поддержку
+  plant_id:
+    type: id
+    desc: >-
+      Растение, в горшке которого стоит датчик, — на растение не больше одного датчика. Поля нет, если датчик
+      сняли с растения или растение ушло в архив: датчик остаётся в доме
+  name:
+    type: string
+    required: true
+    desc: Имя для людей, 1–40 символов — «Датчик у Бенджи»
+  state:
+    type: string
+    required: true
+    enum: [online, offline]
+    desc: >-
+      offline — 3 ч без пачек (отмечает sensor-watch раз в 5 мин) или пачек ещё не было после привязки;
+      первая принятая пачка сразу возвращает online. Без связи план полива возвращается к расписанию
+  firmware:
+    type: string
+    required: true
+    desc: Версия прошивки в semver из последней пачки, до первой — заводская; по ней админка считает волны раскатки
+  battery_pct:
+    type: int
+    desc: >-
+      Заряд 0–100 % по battery_mv последней пачки; ниже 15 % — тревога battery_low, повторно — только после
+      подъёма выше 30 %. Поля нет, пока пачек не было
+  last_seen_at:
+    type: time
+    desc: Когда принята последняя пачка; поля нет, пока датчик ни разу не вышел на связь
+  last_reading:
+    type: SensorReading
+    desc: Последнее показание вместе с moisture_pct — из него плашка влажности на карточке растения
+  calibrated:
+    type: bool
+    required: true
+    desc: false — проценты считаются по заводским точкам щупа, true — по точкам пользователя из sensors.calibrate
+  raw_dry:
+    type: int
+    required: true
+    desc: Действующая сухая точка — сырое значение щупа в воздухе; при calibrated = false заводская
+  raw_wet:
+    type: int
+    required: true
+    desc: Действующая мокрая точка — щуп в стакане воды; сухая всегда выше мокрой не меньше чем на 300 единиц
+  claimed_at:
+    type: time
+    required: true
+    desc: Момент привязки к дому
+
+# golden — датчик над фикусом Бенджи 15 декабря, тот же, что в полном ответе plants.get.
+golden:
+  - name: online_over_ficus
+    value:
+      id: 01a15889-fa80-7c1d-b5ef-024d3b1f8bed
+      serial: FS1-4Q7D2M
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+      name: Датчик у Бенджи
+      state: online
+      firmware: "1.4.2"
+      battery_pct: 58
+      last_seen_at: "2026-12-15T09:30:03.412Z"
+      last_reading:
+        at: "2026-12-15T09:30:01.000Z"
+        moisture_raw: 2210
+        moisture_pct: 41
+        temperature_dc: 215
+        light_lux: 5400
+        battery_mv: 3240
+      calibrated: true
+      raw_dry: 3010
+      raw_wet: 1060
+      claimed_at: "2026-11-02T16:48:27.903Z"
+    json: '{"battery_pct":58,"calibrated":true,"claimed_at":"2026-11-02T16:48:27.903Z","firmware":"1.4.2","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a15889-fa80-7c1d-b5ef-024d3b1f8bed","last_reading":{"at":"2026-12-15T09:30:01.000Z","battery_mv":3240,"light_lux":5400,"moisture_pct":41,"moisture_raw":2210,"temperature_dc":215},"last_seen_at":"2026-12-15T09:30:03.412Z","name":"Датчик у Бенджи","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","raw_dry":3010,"raw_wet":1060,"serial":"FS1-4Q7D2M","state":"online"}'

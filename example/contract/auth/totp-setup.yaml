@@ -1,0 +1,62 @@
+# auth.totp_setup — заготовка второго фактора: секрет и otpauth-ссылка для QR. Пароль нужен даже в открытой сессии:
+# оставленный без присмотра ноутбук не должен позволять привязать чужой телефон. Фактор включится только после
+# auth.totp_enable с верным кодом. Сценарий — «Подключение второго фактора и коды восстановления».
+
+operation: auth.totp_setup
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/totp/setup
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: user
+summary: "Заготовка второго фактора: секрет и otpauth-ссылка для QR."
+
+request:
+  password:
+    type: string
+    required: true
+    desc: Текущий пароль аккаунта
+
+response:
+  setup_id:
+    type: id
+    required: true
+    desc: Заготовка для auth.totp_enable
+  secret:
+    type: string
+    required: true
+    desc: 20 случайных байт в base32, 32 символа — для ручного ввода, если QR не читается
+  otpauth_uri:
+    type: string
+    required: true
+    desc: Содержимое QR — otpauth://totp/Fikus:<адрес>?secret=…&issuer=Fikus; SHA-1, 6 цифр и шаг 30 с — значения по умолчанию, в ссылке их нет
+  expires_at:
+    type: time
+    required: true
+    desc: Заготовка живёт 10 мин; новая заготовка заменяет прежнюю
+
+errors:
+  - code: invalid_credentials
+    category: auth
+    desc: Неверный пароль — сессия жива, токен не обновляется, ошибка под полем
+  - code: totp_already_enabled
+    category: conflict
+    desc: Фактор уже включён — новый набор только через auth.totp_disable и повторное подключение
+
+golden:
+  - name: request
+    part: request
+    value:
+      password: демо-пароль-анны
+    json: '{"password":"демо-пароль-анны"}'
+  - name: ok
+    part: response
+    value:
+      setup_id: 01a27929-ce40-791e-b635-87202948966b
+      secret: DEMODEMODEMODEMODEMODEMODEMODEMO
+      otpauth_uri: "otpauth://totp/Fikus:anna@example.com?secret=DEMODEMODEMODEMODEMODEMODEMODEMO&issuer=Fikus"
+      expires_at: "2026-12-15T10:15:12.640Z"
+    json: '{"expires_at":"2026-12-15T10:15:12.640Z","otpauth_uri":"otpauth://totp/Fikus:anna@example.com?secret=DEMODEMODEMODEMODEMODEMODEMODEMO&issuer=Fikus","secret":"DEMODEMODEMODEMODEMODEMODEMODEMO","setup_id":"01a27929-ce40-791e-b635-87202948966b"}'

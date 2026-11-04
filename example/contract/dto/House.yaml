@@ -1,0 +1,81 @@
+# House — дом: общее пространство ухода, которому принадлежат растения, датчики и часовой пояс. Отдают
+# houses.list, houses.get, houses.update, houses.vacation и invites.accept; участников (members) — только
+# houses.get. Почему пояс у дома, а не у телефона, — ADR-009: растения стоят дома.
+
+dto: House
+status: live
+since: v1
+clients: [app, android, server]
+summary: "Дом: настройки, участники, отпуск."
+
+fields:
+  id:
+    type: id
+    required: true
+  name:
+    type: string
+    required: true
+    desc: Название, 1–60 символов; при регистрации — «Мой дом» на языке аккаунта
+  time_zone:
+    type: string
+    required: true
+    desc: >-
+      Пояс IANA, Europe/Moscow. По нему считаются утреннее окно, дайджест в 07:30, день задачи и смена сезона;
+      смещение вроде +03:00 не принимается — оно не переживает переход на летнее время
+  hemisphere:
+    type: string
+    required: true
+    enum: [north, south]
+    desc: Полушарие для сезона плана; по умолчанию его подсказывает пояс (Australia/*, Pacific/Auckland — south)
+  morning_window_start:
+    type: string
+    required: true
+    desc: Начало утреннего окна напоминаний, HH:MM по поясу дома, по умолчанию 08:00; с него же начинается срок задач
+  morning_window_end:
+    type: string
+    required: true
+    desc: Конец окна, HH:MM, по умолчанию 10:00; окно не короче 30 мин и не переходит через полночь
+  my_role:
+    type: string
+    required: true
+    enum: [owner, member, helper]
+    desc: Роль запросившего — по ней клиент прячет кнопки, на которые у роли нет прав
+  members:
+    type: list<HouseMember>
+    desc: Только в houses.get — участники по joined_at, до 10 человек вместе с помощниками
+  vacation_helper_id:
+    type: id
+    desc: Помощник отпуска; три поля vacation_* есть, пока отпуск запланирован или идёт, после конца их нет
+  vacation_starts_at:
+    type: time
+    desc: Начало отпуска — с него напоминания по дому получает только помощник
+  vacation_ends_at:
+    type: time
+    desc: Конец отпуска — напоминания возвращаются всем участникам
+  plants_count:
+    type: int
+    required: true
+    desc: Растений в доме без архивных, не больше 200
+  sensors_count:
+    type: int
+    required: true
+    desc: Датчиков, привязанных к дому
+  created_at:
+    type: time
+    required: true
+
+# «Квартира на Лесной» глазами Анны 15 декабря — форма houses.list, без участников и отпуска.
+golden:
+  - name: lesnaya
+    value:
+      id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      name: Квартира на Лесной
+      time_zone: Europe/Moscow
+      hemisphere: north
+      morning_window_start: "08:00"
+      morning_window_end: "10:00"
+      my_role: owner
+      plants_count: 4
+      sensors_count: 2
+      created_at: "2026-09-20T17:05:11.284Z"
+    json: '{"created_at":"2026-09-20T17:05:11.284Z","hemisphere":"north","id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","morning_window_end":"10:00","morning_window_start":"08:00","my_role":"owner","name":"Квартира на Лесной","plants_count":4,"sensors_count":2,"time_zone":"Europe/Moscow"}'

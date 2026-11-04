@@ -1,0 +1,121 @@
+# ingest.readings — приём пачки показаний от Fikus Sense. Отдельное имя ingest.fikus.example зашито в прошивку:
+# приём можно будет вынести на свою машину без перепрошивки датчиков, хотя сейчас его обслуживает тот же fikus-api.
+# HTTPS, а не MQTT (ADR-011): датчик спит, долгое соединение и брокер ему не нужны. Сценарий — «Цикл датчика».
+
+operation: ingest.readings
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/device/readings
+  host: ingest.fikus.example   # nginx пропускает на этом имени только /v1/device/… и /health
+status: draft
+since: v1
+clients: [sense, server]
+auth: device       # Authorization: Bearer <токен устройства>; сервер хранит только SHA-256 токена
+summary: "Приём пачки показаний от датчика на ingest.fikus.example."
+
+request:
+  serial:
+    type: string
+    required: true
+    desc: Серийный номер FS1-XXXXXX; не совпал с датчиком токена — device_unknown
+  firmware:
+    type: string
+    required: true
+    desc: >-
+      Версия прошивки в semver. Прежняя версия после раскатки новой — признак отката: сервер поднимает
+      sensors.alert firmware_failed
+  readings:
+    type: list<SensorReading>
+    required: true
+    desc: Накопленные показания без moisture_pct, до 48 — сутки без связи; старые датчик вытесняет сам
+
+# Повтор пачки безвреден без Idempotency-Key: дубли по (sensor_id, at) отбрасывает первичный ключ. Показания
+# старше 7 дней отбрасываются молча, время из будущего больше чем на 5 мин заменяется временем приёма.
+# Новое показание — повод пересчитать полив по коридору влажности растения.
+response:
+  state:
+    type: string
+    required: true
+    enum: [accepted, unclaimed]
+    desc: >-
+      accepted — пачка принята, датчик чистит буфер; unclaimed — датчик ещё не привязан к дому: сервер ничего
+      не сохраняет, датчик оставляет показания в буфере и мигает 2 раза. Это исход, а не отказ
+  accepted:
+    type: int
+    required: true
+    desc: Сколько показаний записано
+  duplicates:
+    type: int
+    required: true
+    desc: Сколько отброшено как повтор — потерялся ответ, и датчик прислал ту же пачку
+  next_interval:
+    type: duration
+    required: true
+    desc: >-
+      Через сколько секунд просыпаться: обычно 1800, при unclaimed — 60 (привязка обычно заканчивается в ту же
+      минуту). Так сервер меняет ритм, не трогая прошивку
+  firmware_check:
+    type: bool
+    required: true
+    desc: true — для датчика есть раскатка новее его версии; он спросит ingest.firmware, не дожидаясь суточной проверки
+
+# Клиент у этих отказов один — прошивка, и ветвится она по code; message не читает.
+errors:
+  - code: device_unknown
+    category: auth
+    desc: Токен неизвестен или не совпал серийный номер — датчик мигает 3 раза и засыпает
+  - code: too_many_readings
+    category: validation
+    desc: Больше 48 показаний в пачке
+  - code: invalid_fields
+    category: validation
+    fields:
+      serial: [required, invalid_format]
+      readings: [required]
+  - code: rate_limited
+    category: rate_limit
+    desc: >-
+      Чаще 1 запроса в минуту на датчик; обычный ритм — раз в 30 мин, чаще шлют только кнопка «отправить сейчас»
+      и повтор после привязки. Датчик повторяет через retry_after
+
+# 15 декабря, 12:30 по Москве: Бенджи, в пачке два показания — в 12:00 Wi-Fi не ответил, показание ждало в буфере.
+# unclaimed — 18 декабря новый датчик вышел на связь за полминуты до того, как Анна закончила привязку.
+golden:
+  - name: request
+    part: request
+    value:
+      serial: FS1-4Q7D2M
+      firmware: "1.4.2"
+      readings:
+        - {at: "2026-12-15T09:00:02.000Z", moisture_raw: 2195, temperature_dc: 214, light_lux: 4900, battery_mv: 3241}
+        - {at: "2026-12-15T09:30:01.000Z", moisture_raw: 2210, temperature_dc: 215, light_lux: 5400, battery_mv: 3240}
+    json: '{"firmware":"1.4.2","readings":[{"at":"2026-12-15T09:00:02.000Z","battery_mv":3241,"light_lux":4900,"moisture_raw":2195,"temperature_dc":214},{"at":"2026-12-15T09:30:01.000Z","battery_mv":3240,"light_lux":5400,"moisture_raw":2210,"temperature_dc":215}],"serial":"FS1-4Q7D2M"}'
+  - name: accepted
+    part: response
+    value:
+      state: accepted
+      accepted: 2
+      duplicates: 0
+      next_interval: 1800
+      firmware_check: false
+    json: '{"accepted":2,"duplicates":0,"firmware_check":false,"next_interval":1800,"state":"accepted"}'
+  - name: unclaimed
+    part: response
+    value:
+      state: unclaimed
+      accepted: 0
+      duplicates: 0
+      next_interval: 60
+      firmware_check: false
+    json: '{"accepted":0,"duplicates":0,"firmware_check":false,"next_interval":60,"state":"unclaimed"}'
+  - name: device_unknown
+    part: problem
+    value:
+      code: device_unknown
+      category: auth
+      message: Устройство не найдено
+      fields: []
+      request_id: 01a27909-a622-73bf-b0dd-55b272ca4e3e
+    json: '{"category":"auth","code":"device_unknown","fields":[],"message":"Устройство не найдено","request_id":"01a27909-a622-73bf-b0dd-55b272ca4e3e"}'

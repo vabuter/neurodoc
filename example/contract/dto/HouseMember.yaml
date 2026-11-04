@@ -1,0 +1,50 @@
+# HouseMember — участник дома и его роль. Отдаёт houses.member_update, вложен в House.members ответа houses.get.
+# Роль в доме не зависит от роли аккаунта (user или admin): администратор Fikus в чужом доме — обычный участник.
+
+dto: HouseMember
+status: live
+since: v1
+clients: [app, android, server]
+summary: "Участник дома и его роль."
+
+fields:
+  account_id:
+    type: id
+    required: true
+    desc: Аккаунт участника; он же {account_id} в путях houses.member_update и houses.member_remove
+  display_name:
+    type: string
+    required: true
+    desc: Имя из профиля участника — так его отметки подписаны в журнале и в «Борис уже полил в 08:12»
+  role:
+    type: string
+    required: true
+    enum: [owner, member, helper]
+    desc: >-
+      owner — всё, включая участников, приглашения, отпуск и настройки дома; в доме всегда есть хотя бы один.
+      member — растения, задачи и датчики наравне с owner. helper — временный доступ: видит растения и датчики,
+      отмечает задачи, но ничего не меняет
+  access_until:
+    type: time
+    desc: >-
+      Только у helper и у него обязательно — когда доступ кончится сам: helper-expire раз в 10 мин снимает
+      истёкших. Должен покрывать отпуск, в котором участник назначен помощником
+  joined_at:
+    type: time
+    required: true
+    desc: >-
+      Когда вступил. Если аккаунт удаляет единственный owner, владельцем становится участник с самым ранним
+      joined_at; помощники в этом выборе не участвуют
+  deletion_at:
+    type: time
+    desc: Есть, пока аккаунт участника ждёт удаления (pending_deletion); клиент подписывает участника «удаляется»
+
+golden:
+  - name: vera_helper
+    value:
+      account_id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+      display_name: Вера
+      role: helper
+      access_until: "2027-01-14T05:00:00.000Z"
+      joined_at: "2026-12-20T16:20:05.331Z"
+    json: '{"access_until":"2027-01-14T05:00:00.000Z","account_id":"01a2943a-0517-7033-93c0-609f8dec0e5a","display_name":"Вера","joined_at":"2026-12-20T16:20:05.331Z","role":"helper"}'

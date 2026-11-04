@@ -1,0 +1,131 @@
+# plants.create — новое растение в доме; сервер в том же запросе считает план, и карточка открывается уже с
+# задачами. Идемпотентна по Idempotency-Key: повтор после обрыва связи не заведёт второе растение. Сценарий —
+# «Добавление растения» (вид из поиска или своё название и предложение вида).
+
+operation: plants.create
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/houses/{house_id}/plants
+  idempotency_key: true      # заголовок Idempotency-Key: UUID на одно нажатие «Добавить», ответ хранится 24 ч
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Новое растение в доме; сервер сразу считает план ухода."
+
+# Обязательны свойства, без которых план считался бы по выдуманным значениям: материал, дренаж и свет.
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути; заводят owner и member
+  species_id:
+    type: id
+    desc: Вид из species.search; ровно одно из species_id и custom_species_name
+  custom_species_name:
+    type: string
+    desc: >-
+      Своё название, 1–60 символов, когда вида нет в справочнике: план — по профилю «обычное комнатное». Ждёт
+      модератора предложение автора с тем же названием — растение привязывается к нему (species_pending)
+  nickname:
+    type: string
+    required: true
+    desc: Прозвище, 1–40 символов
+  pot_material:
+    type: string
+    required: true
+    enum: [plastic, ceramic, clay, glass]
+  pot_diameter_cm:
+    type: int
+    desc: 5–80 см
+  pot_drainage:
+    type: bool
+    required: true
+  soil:
+    type: string
+    enum: [universal, cactus, orchid_bark, peat, custom]
+    desc: По умолчанию universal
+  location_room:
+    type: string
+    desc: Комната, до 40 символов
+  window:
+    type: string
+    enum: [north, east, south, west, none]
+    desc: По умолчанию none
+  light:
+    type: string
+    required: true
+    enum: [low, medium, bright, direct]
+  last_watered_at:
+    type: time
+    desc: >-
+      Когда поливали последний раз, не позже текущего момента: от него считается первый полив. Без поля — полив
+      завтра в утреннем окне (растение из магазина обычно полито); остальные задачи — через свой интервал от дня создания
+
+response: Plant      # с plan и next_tasks (до 5 на 7 дней); photos нет — фото добавляют после создания
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      species_id: [required]            # ни вида, ни своего названия — или оба сразу
+      custom_species_name: [too_long, not_allowed]
+      nickname: [required, too_long]
+      pot_diameter_cm: [out_of_range]
+      last_watered_at: [out_of_range]   # из будущего
+  - code: species_not_found
+    category: not_found
+    desc: Вида с таким species_id нет или он ещё не одобрен
+  - code: house_plant_limit
+    category: conflict
+    desc: В доме уже 200 растений, архивные не в счёт; клиент пишет «В этот дом больше не поместится»
+  - code: forbidden
+    category: forbidden
+    desc: Роль helper — растения он не заводит, кнопки «Добавить» у него нет
+
+# 28 ноября Борис заводит «Декору»: на ценнике — Ficus decora, в справочнике он такого не нашёл. План — по профилю
+# «обычное комнатное», осень; пункта mist нет: опрыскивание профилю не нужно. Через 23 секунды Борис предложит
+# вид (species.suggest), а 1 декабря модератор объединит предложение с Ficus elastica.
+golden:
+  - name: request
+    part: request
+    value:
+      custom_species_name: Фикус каучуконосный
+      nickname: Декора
+      pot_material: plastic
+      pot_diameter_cm: 20
+      pot_drainage: true
+      location_room: прихожая
+      window: none
+      light: low
+    json: '{"custom_species_name":"Фикус каучуконосный","light":"low","location_room":"прихожая","nickname":"Декора","pot_diameter_cm":20,"pot_drainage":true,"pot_material":"plastic","window":"none"}'
+  - name: ok
+    part: response
+    value:
+      id: 01a22364-5601-753e-9278-061c9481ffcb
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      species_name: Фикус каучуконосный
+      custom_species: true
+      nickname: Декора
+      pot_material: plastic
+      pot_diameter_cm: 20
+      pot_drainage: true
+      soil: universal
+      location_room: прихожая
+      window: none
+      light: low
+      plan:
+        plant_id: 01a22364-5601-753e-9278-061c9481ffcb
+        season: autumn
+        computed_at: "2026-11-28T18:21:47.908Z"
+        items:
+          - {kind: water, base_days: 7, factors: {season: 120, pot: 100, light: 125}, interval_days: 11, next_due_at: "2026-11-29T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+          - {kind: feed, base_days: 30, factors: {season: 150}, interval_days: 45, next_due_at: "2027-01-12T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+          - {kind: repot, base_days: 730, factors: {}, interval_days: 730, next_due_at: "2028-11-27T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+          - {kind: rotate, base_days: 14, factors: {}, interval_days: 14, next_due_at: "2026-12-12T05:00:00.000Z", paused: false, adjusted_by_sensor: false}
+      next_tasks:
+        - {id: 01a22364-5607-77d1-ba66-cae860a14fa2, plant_id: 01a22364-5601-753e-9278-061c9481ffcb, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Декора, kind: water, due_at: "2026-11-29T05:00:00.000Z", state: open}
+      created_at: "2026-11-28T18:21:47.905Z"
+    json: '{"created_at":"2026-11-28T18:21:47.905Z","custom_species":true,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a22364-5601-753e-9278-061c9481ffcb","light":"low","location_room":"прихожая","next_tasks":[{"due_at":"2026-11-29T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a22364-5607-77d1-ba66-cae860a14fa2","kind":"water","plant_id":"01a22364-5601-753e-9278-061c9481ffcb","plant_name":"Декора","state":"open"}],"nickname":"Декора","plan":{"computed_at":"2026-11-28T18:21:47.908Z","items":[{"adjusted_by_sensor":false,"base_days":7,"factors":{"light":125,"pot":100,"season":120},"interval_days":11,"kind":"water","next_due_at":"2026-11-29T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":30,"factors":{"season":150},"interval_days":45,"kind":"feed","next_due_at":"2027-01-12T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":730,"factors":{},"interval_days":730,"kind":"repot","next_due_at":"2028-11-27T05:00:00.000Z","paused":false},{"adjusted_by_sensor":false,"base_days":14,"factors":{},"interval_days":14,"kind":"rotate","next_due_at":"2026-12-12T05:00:00.000Z","paused":false}],"plant_id":"01a22364-5601-753e-9278-061c9481ffcb","season":"autumn"},"pot_diameter_cm":20,"pot_drainage":true,"pot_material":"plastic","soil":"universal","species_name":"Фикус каучуконосный","window":"none"}'

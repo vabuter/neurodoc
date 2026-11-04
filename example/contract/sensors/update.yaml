@@ -1,0 +1,74 @@
+# sensors.update — имя датчика и растение, над которым он стоит. Грунт у датчика не хранится: пороги влажности
+# берутся у растения (Plant.soil), поэтому после переезда они сразу новые. Смена растения пересчитывает планы обоих
+# растений: старое возвращается к расписанию, новое начинает слушать датчик. Draft до пилота на 20 датчиках.
+
+operation: sensors.update
+kind: request
+transport: http
+http:
+  method: PATCH
+  path: /v1/sensors/{sensor_id}
+status: draft
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Имя датчика и растение, над которым он стоит."
+
+# Все поля необязательны: нет поля — не трогать.
+request:
+  sensor_id:
+    type: id
+    required: true
+    desc: Датчик — параметр пути
+  name:
+    type: string
+    desc: Имя, 1–40 символов
+  plant_id:
+    type: id
+    desc: >-
+      Растение этого же дома без своего датчика; null — снять с растения, датчик остаётся в доме. Если у нового
+      растения другой грунт, приложение предлагает повторить калибровку: щуп всё равно вынут из земли
+
+response: Sensor
+
+# Остальным участникам — houses.changed со scope sensors, а если сдвинулись даты полива — ещё и со scope tasks.
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      name: [required, too_long]
+      plant_id: [not_allowed]           # растение другого дома, архивное или уже с датчиком
+  - code: forbidden
+    category: forbidden
+    desc: Роль helper
+  - code: not_found
+    category: not_found
+    desc: Датчика нет или он привязан к дому, где пользователь не состоит
+
+# 20 декабря: датчик монстеры разрядился и снят на зарядку, Борис переставляет новый датчик с калатеи (на кухне
+# плохая связь) на монстеру в спальне.
+golden:
+  - name: request
+    part: request
+    value:
+      name: Датчик у монстеры
+      plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+    json: '{"name":"Датчик у монстеры","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2"}'
+  - name: moved_to_monstera
+    part: response
+    value:
+      id: 01a15889-fa80-7cd8-99ac-4ae23868e451
+      serial: FS1-7MZQ4B
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_id: 01a106ea-4a16-7f02-b711-ad00d27fd5e2
+      name: Датчик у монстеры
+      state: online
+      firmware: "1.4.2"
+      battery_pct: 92
+      last_seen_at: "2026-12-20T18:00:03.118Z"
+      last_reading: {at: "2026-12-20T18:00:01.000Z", moisture_raw: 2280, moisture_pct: 40, temperature_dc: 223, light_lux: 410, battery_mv: 3299}
+      calibrated: true
+      raw_dry: 3046
+      raw_wet: 1132
+      claimed_at: "2026-12-18T15:31:09.664Z"
+    json: '{"battery_pct":92,"calibrated":true,"claimed_at":"2026-12-18T15:31:09.664Z","firmware":"1.4.2","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a15889-fa80-7cd8-99ac-4ae23868e451","last_reading":{"at":"2026-12-20T18:00:01.000Z","battery_mv":3299,"light_lux":410,"moisture_pct":40,"moisture_raw":2280,"temperature_dc":223},"last_seen_at":"2026-12-20T18:00:03.118Z","name":"Датчик у монстеры","plant_id":"01a106ea-4a16-7f02-b711-ad00d27fd5e2","raw_dry":3046,"raw_wet":1132,"serial":"FS1-7MZQ4B","state":"online"}'

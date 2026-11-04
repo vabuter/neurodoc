@@ -1,0 +1,43 @@
+# system.maintenance — сменился режим обслуживания: показать, обновить или убрать баннер. fikus-api шлёт его после
+# admin.maintenance и когда сам заметил смену файла-флага (перечитывает раз в 5 с), например флаг поставил скрипт деплоя;
+# остановленный процесс событий не шлёт — тогда клиенты узнают о работах по отказам. Клиент в ответ перезапрашивает
+# system.config. Сценарий — «Включение режима обслуживания».
+
+operation: system.maintenance
+kind: push
+transport: websocket
+channel: /v1/push
+event: system.maintenance
+audience: все подключённые клиенты — веб-приложение, админка и Android под любым аккаунтом
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: user
+summary: "Сменился режим обслуживания — показать или скрыть баннер."
+
+payload:
+  mode:
+    type: string
+    required: true
+    enum: ["off", banner, full]
+    desc: Новый режим. При full канал не закрывается, и по нему же потом придёт off
+  message:
+    type: string
+    desc: Текст баннера на языке аккаунта получателя (message_ru или message_en из admin.maintenance); при off поля нет
+  until:
+    type: time
+    desc: Плановый конец работ; поля нет, если срок не назван или режим снят
+
+golden:
+  - name: banner
+    part: payload
+    value:
+      mode: banner
+      message: Плановые работы 14 марта с 03:00 до 03:30 UTC
+      until: "2026-03-14T03:30:00.000Z"
+    json: '{"message":"Плановые работы 14 марта с 03:00 до 03:30 UTC","mode":"banner","until":"2026-03-14T03:30:00.000Z"}'
+  - name: "off"
+    part: payload
+    value:
+      mode: "off"
+    json: '{"mode":"off"}'

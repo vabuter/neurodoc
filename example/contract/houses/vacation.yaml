@@ -1,0 +1,101 @@
+# houses.vacation — режим отпуска: на время поездки все напоминания дома получает один помощник. PUT задаёт
+# отпуск целиком: включить, изменить даты или помощника, досрочно завершить — одной операцией; у дома отпуск
+# один, пересечения не допустит база. Только owner. Сценарий — «Отпуск: помощник, переключение напоминаний и конец доступа».
+
+operation: houses.vacation
+kind: request
+transport: http
+http:
+  method: PUT
+  path: /v1/houses/{house_id}/vacation
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Включить, изменить или досрочно завершить режим отпуска."
+
+request:
+  house_id:
+    type: id
+    required: true
+    desc: Дом — параметр пути
+  helper_id:
+    type: id
+    required: true
+    desc: Помощник — любой участник дома, member или helper; у helper access_until должен быть не раньше ends_at
+  starts_at:
+    type: time
+    required: true
+    desc: Начало, не дальше 60 дней вперёд; в прошлом — значит «уже идёт»
+  ends_at:
+    type: time
+    required: true
+    desc: >-
+      Конец; отпуск не длиннее 60 дней — дольше это переезд, и честнее сделать помощника участником.
+      ends_at не позже текущего момента — досрочный конец: идущий отпуск vacation-switch снимет в течение
+      минуты, запланированный отменяется; остальные поля тогда не проверяются
+
+# Переключения в начале и конце делает vacation-switch раз в минуту: задачи получают assignee_id помощника и
+# обратно, каждый раз — houses.changed со scope vacation. Тревоги датчиков отпуск не трогает — их получают все.
+response: House      # без members, с полями vacation_*; после досрочного конца их уже нет
+
+# Ошибки дат — validation с FieldProblem на поле: клиент подсвечивает starts_at или ends_at.
+errors:
+  - code: helper_not_member
+    category: validation
+    desc: helper_id — не участник дома
+  - code: helper_access_too_short
+    category: validation
+    desc: Доступ помощника кончается раньше отпуска — продлить его (houses.member_update) или сократить отпуск
+  - code: vacation_too_long
+    category: validation
+    desc: Длительность больше 60 дней
+  - code: starts_too_far
+    category: validation
+    desc: Начало дальше 60 дней вперёд
+  - code: invalid_fields
+    category: validation
+    fields:
+      ends_at: [out_of_range]           # раньше starts_at
+  - code: forbidden
+    category: forbidden
+    desc: Не owner
+
+# 20 декабря Анна планирует отпуск на 14 дней с Верой. Первая попытка — до 15 января, а доступ Веры до 14-го.
+golden:
+  - name: request
+    part: request
+    value:
+      helper_id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+      starts_at: "2026-12-30T05:00:00.000Z"
+      ends_at: "2027-01-13T05:00:00.000Z"
+    json: '{"ends_at":"2027-01-13T05:00:00.000Z","helper_id":"01a2943a-0517-7033-93c0-609f8dec0e5a","starts_at":"2026-12-30T05:00:00.000Z"}'
+  - name: planned
+    part: response
+    value:
+      id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      name: Квартира на Лесной
+      time_zone: Europe/Moscow
+      hemisphere: north
+      morning_window_start: "08:00"
+      morning_window_end: "10:00"
+      my_role: owner
+      vacation_helper_id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+      vacation_starts_at: "2026-12-30T05:00:00.000Z"
+      vacation_ends_at: "2027-01-13T05:00:00.000Z"
+      plants_count: 4
+      sensors_count: 3
+      created_at: "2026-09-20T17:05:11.284Z"
+    json: '{"created_at":"2026-09-20T17:05:11.284Z","hemisphere":"north","id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","morning_window_end":"10:00","morning_window_start":"08:00","my_role":"owner","name":"Квартира на Лесной","plants_count":4,"sensors_count":3,"time_zone":"Europe/Moscow","vacation_ends_at":"2027-01-13T05:00:00.000Z","vacation_helper_id":"01a2943a-0517-7033-93c0-609f8dec0e5a","vacation_starts_at":"2026-12-30T05:00:00.000Z"}'
+  - name: helper_access_too_short
+    part: problem
+    value:
+      code: helper_access_too_short
+      category: validation
+      message: Доступ Веры заканчивается 14 января — продлите его или сократите отпуск
+      fields:
+        - field: ends_at
+          code: out_of_range
+          message: Не позже конца доступа помощника
+      request_id: 01a29449-ed90-7a8f-a9b7-e0b1e732ccbd
+    json: '{"category":"validation","code":"helper_access_too_short","fields":[{"code":"out_of_range","field":"ends_at","message":"Не позже конца доступа помощника"}],"message":"Доступ Веры заканчивается 14 января — продлите его или сократите отпуск","request_id":"01a29449-ed90-7a8f-a9b7-e0b1e732ccbd"}'

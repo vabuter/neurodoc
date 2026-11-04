@@ -1,0 +1,66 @@
+# CareTask — задача ухода с датой и состоянием. Создаёт и двигает её только план ухода; открытая задача
+# каждого вида на растение одна — две недели без отметок дают одну просроченную задачу, а не стопку. Отдают
+# care.tasks, care.complete, care.snooze, care.skip, событие care.task_due и Plant.next_tasks.
+
+dto: CareTask
+status: live
+since: v1
+clients: [app, android, server]
+summary: "Задача ухода с датой и состоянием."
+
+fields:
+  id:
+    type: id
+    required: true
+  plant_id:
+    type: id
+    required: true
+  house_id:
+    type: id
+    required: true
+  plant_name:
+    type: string
+    required: true
+    desc: Прозвище растения на момент ответа — экран «Сегодня» собирается без отдельного запроса растений
+  kind:
+    type: string
+    required: true
+    enum: [water, feed, mist, repot, rotate]
+  due_at:
+    type: time
+    required: true
+    desc: >-
+      Срок — начало утреннего окна дома в день задачи. Пересчёт плана и датчик двигают его у открытой задачи,
+      откладывание — нет: у отложенной срок прежний, а новое время — в snoozed_until
+  state:
+    type: string
+    required: true
+    enum: [open, done, skipped, snoozed]
+    desc: >-
+      open — ждёт; done — выполнена; skipped — пропущена; snoozed — отложена до snoozed_until, потом снова open.
+      Задачу, которую закрыл пересчёт плана или архивация растения, сервер удаляет: в ответах её нет, а отметка
+      по её id получает task_closed
+  snoozed_until:
+    type: time
+    desc: Только у snoozed — до какого момента отложена, не дальше 72 ч от момента откладывания
+  assignee_id:
+    type: id
+    desc: Только во время отпуска дома — помощник, которому идут напоминания; отметить задачу может любой участник
+  resolved_at:
+    type: time
+    desc: У done — момент выполнения (done_at, задним числом до 72 ч), у skipped — момент пропуска
+  resolved_by:
+    type: id
+    desc: Кто выполнил или пропустил; после удаления этого аккаунта поля нет
+
+golden:
+  - name: open_water
+    value:
+      id: 01a25957-8a8b-710e-9089-a2aa8c841494
+      plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_name: Бенджи
+      kind: water
+      due_at: "2026-12-19T05:00:00.000Z"
+      state: open
+    json: '{"due_at":"2026-12-19T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a25957-8a8b-710e-9089-a2aa8c841494","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"}'

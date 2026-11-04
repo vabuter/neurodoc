@@ -1,0 +1,34 @@
+<svg class="bpmn" viewBox="0 0 1180 594" role="img" aria-label="BPMN: Выполнение задачи ухода">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема к [задачам и журналу ухода](e141b809-4b81-4e74-bcc9-1c8f97fa23fa), входит в [сценарии растений и ухода](4920b122-9538-4ee5-b877-09515292c101). Операции на чипах: [care.complete](../contract/care/complete.yaml), [care.skip](../contract/care/skip.yaml), [care.snooze](../contract/care/snooze.yaml), [houses.changed](../contract/houses/changed.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1160" height="110"/><rect x="10" y="120" width="1160" height="160"/><rect x="10" y="280" width="1160" height="220"/><rect x="10" y="500" width="1160" height="84"/><path d="M110 10V584"/></g>
+<g class="lane-title"><text x="60" y="62">Участник<tspan x="60" dy="14">(Анна)</tspan></text><text x="60" y="204">Клиент</text><text x="60" y="394">Сервер</text><text x="60" y="532">Другой<tspan x="60" dy="14">участник</tspan><tspan x="60" dy="14">(Борис)</tspan></text></g>
+<g class="flow"><path d="M138 526H130V560H138" style="marker-end:none"/><path d="M190 65H245"/><path d="M265 85V145"/><path d="M285 65H900V155"/><path d="M265 45V28H1060V48"/><path d="M285 165H344"/><path d="M440 165H485"/><path d="M515 165H554"/><path d="M630 188V230"/><path d="M265 185V240H570"/><path d="M700 240H744"/><path d="M630 250V310"/><path d="M900 175V330H650"/><path d="M610 330H486"/><path d="M630 350V387"/><path d="M706 410H736"/><path d="M820 433V463"/><path d="M874 480H914"/><path d="M820 497V531" stroke-dasharray="5 4"/><path d="M1060 82V155"/><path d="M1060 175V310"/><path d="M1060 350V387"/><path d="M1060 433V464"/><path d="M1080 330H1140V65H1116"/></g>
+<g class="task"><rect x="1004" y="48" width="112" height="34" rx="7"/><rect x="344" y="142" width="96" height="46" rx="7"/><rect x="554" y="142" width="153" height="46" rx="7"/></g>
+<g class="sys"><rect x="554" y="387" width="153" height="46" rx="7"/><rect x="736" y="387" width="167" height="46" rx="7"/><rect x="1004" y="387" width="112" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="570" y="230" width="120" height="20" rx="4"/><rect x="862" y="155" width="76" height="20" rx="4"/><rect x="1016" y="155" width="89" height="20" rx="4"/><rect x="766" y="463" width="109" height="34" rx="4"/></g>
+<g class="gw"><path d="M265 45l20 20-20 20-20-20z"/><path d="M265 145l20 20-20 20-20-20z"/><path d="M630 310l20 20-20 20-20-20z"/><path d="M1060 310l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="175" cy="65" r="15"/><circle cx="500" cy="165" r="15"/><circle cx="500" cy="165" r="12"/><circle cx="690" cy="240" r="10"/><circle cx="690" cy="240" r="7"/><circle cx="820" cy="546" r="15"/><circle cx="820" cy="546" r="12"/></g>
+<g class="ev-end"><circle cx="470" cy="330" r="15"/><circle cx="930" cy="480" r="15"/><circle cx="1060" cy="480" r="15"/></g>
+<g class="ev-err"><circle cx="760" cy="240" r="15"/></g>
+<g class="gwsym"><path d="M259 59l12 12m0-12l-12 12M259 159l12 12m0-12l-12 12M692 236l-4 4.5h4l-4 4M764 232l-7 9h6l-7 8M624 324l12 12m0-12l-12 12M1054 324l12 12m0-12l-12 12M814 542h12v8h-12zl6 4 6-4"/></g>
+<g class="nt"><text x="175" y="94">Задача в «Сегодня»<tspan x="175" dy="14">или уведомление</tspan></text><text x="1060" y="69">Выбрать время</text><text x="238" y="169" text-anchor="end">Сеть есть?</text><text x="392" y="162">Отметка —<tspan x="392" dy="14">в очередь</tspan></text><text x="500" y="194">Сеть появилась</text><text x="630" y="162">Отправить: done_at,<tspan x="630" dy="14">Idempotency-Key</tspan></text><text x="783" y="230" text-anchor="start">task_closed:<tspan x="783" dy="14">«задачу уже</tspan><tspan x="783" dy="14">пересчитали»</tspan></text><text x="646" y="314" text-anchor="start">state?</text><text x="470" y="360">«Борис уже полил<tspan x="470" dy="14">в 08:12»</tspan></text><text x="630" y="407">Запись в журнал:<tspan x="630" dy="14">выполнение или skip</tspan></text><text x="820" y="407">Следующая задача:<tspan x="820" dy="14">от факта или от плана</tspan></text><text x="953" y="477" text-anchor="start">Задача<tspan x="953" dy="14">закрыта</tspan></text><text x="1033" y="334" text-anchor="end">Дальше 72 ч?</text><text x="1060" y="407">state snoozed<tspan x="1060" dy="14">до until</tspan></text><text x="1083" y="477" text-anchor="start">Задача<tspan x="1083" dy="14">отложена</tspan></text><text x="842" y="543" text-anchor="start">«Сегодня» у Бориса<tspan x="842" dy="14">обновилось</tspan></text></g>
+<g class="chip-label"><text x="630" y="244">care.complete</text><text x="900" y="169">care.skip</text><text x="1060" y="169">care.snooze</text><text x="820" y="477">houses.changed</text></g>
+<g class="lbl"><text x="249" y="49" text-anchor="end">Действие?</text><text x="820" y="491" text-anchor="middle">scope tasks</text><text x="136" y="540">Борис уже полил в 08:12 —<tspan x="136" dy="13">у Анны будет already_done</tspan></text><text x="271" y="99">выполнить</text><text x="291" y="59">пропустить</text><text x="272" y="23">отложить</text><text x="291" y="159">нет</text><text x="271" y="199">да</text><text x="604" y="324" text-anchor="end">already_done</text><text x="636" y="364">done / skipped</text><text x="1066" y="364">нет</text><text x="1086" y="324">да</text><text x="1157" y="204" transform="rotate(-90 1157 204)">snooze_too_far</text></g>
+</svg>

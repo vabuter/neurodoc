@@ -1,0 +1,50 @@
+# houses.changed — что-то изменилось в доме, перезапроси затронутое. Событие — подсказка, а не данные: в payload
+# только что и где поменялось, состояние клиент берёт операциями, поэтому потерянное или устаревшее событие не
+# ломает экран. Автору изменения не уходит — он и так знает ответ своей операции.
+
+operation: houses.changed
+kind: push
+transport: websocket
+channel: /v1/push
+event: houses.changed
+audience: все участники дома на связи, кроме автора изменения; у фоновых задач автора нет — получают все
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Что-то изменилось в доме — перезапросить затронутое."
+
+payload:
+  house_id:
+    type: id
+    required: true
+  scope:
+    type: string
+    required: true
+    enum: [plants, tasks, members, vacation, sensors, house]
+    desc: >-
+      Что перезапросить: plants — plants.list и открытые карточки (правка, архив, фото готово, вид после
+      модерации); tasks — care.tasks (отметки, пересчёт плана); members — houses.get (вступление, роль, выход,
+      конец доступа помощника); vacation — houses.get и care.tasks; sensors — sensors.list; house — houses.get
+  ids:
+    type: list<id>
+    required: true
+    desc: >-
+      Затронутые объекты области scope — растения, задачи, аккаунты участников, датчики; пусто для vacation и
+      house. Клиент может перезапросить только их, а может и весь экран
+  by:
+    type: id
+    desc: Кто изменил; у фоновых задач (vacation-switch, helper-expire, photo-process, season-replan) поля нет
+
+# Один повод — одно событие: правка растения, сдвинувшая даты, даёт два — со scope plants и со scope tasks.
+golden:
+  - name: tasks_after_watering   # Борис полил Бенджи: задача закрыта, следующая создана
+    part: payload
+    value:
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      scope: tasks
+      ids:
+        - 01a25957-8a8b-710e-9089-a2aa8c841494
+        - 01a28cb6-e9b7-7651-95a3-a55a5bfba1ec
+      by: 01a0caa1-e44f-77de-a33d-1d51c776de69
+    json: '{"by":"01a0caa1-e44f-77de-a33d-1d51c776de69","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","ids":["01a25957-8a8b-710e-9089-a2aa8c841494","01a28cb6-e9b7-7651-95a3-a55a5bfba1ec"],"scope":"tasks"}'

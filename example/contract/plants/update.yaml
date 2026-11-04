@@ -1,0 +1,102 @@
+# plants.update — частичная правка растения. Смена вида, горшка, грунта или света пересчитывает план, и даты
+# открытых задач сдвигаются сразу. last_watered_at здесь нет намеренно: полив после создания отмечают задачей,
+# чтобы он попал в журнал, на который опирается план. Сценарий — «Пересчёт плана ухода».
+
+operation: plants.update
+kind: request
+transport: http
+http:
+  method: PATCH
+  path: /v1/plants/{plant_id}
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Изменение растения; при смене вида, горшка, грунта или света план пересчитывается."
+
+# Все поля необязательны: нет поля — не трогать. null допустим только у cover_photo_id.
+request:
+  plant_id:
+    type: id
+    required: true
+    desc: Растение — параметр пути; архивное не правится (forbidden)
+  species_id:
+    type: id
+    desc: Другой вид из справочника — так же выбирают вид, когда species.suggest ответил exists
+  custom_species_name:
+    type: string
+    desc: Своё название вместо вида; вместе с species_id нельзя
+  nickname:
+    type: string
+  pot_material:
+    type: string
+    enum: [plastic, ceramic, clay, glass]
+  pot_diameter_cm:
+    type: int
+  pot_drainage:
+    type: bool
+  soil:
+    type: string
+    enum: [universal, cactus, orchid_bark, peat, custom]
+    desc: Сдвигает коридор влажности для датчика сразу — грунт у датчика не хранится
+  location_room:
+    type: string
+  window:
+    type: string
+    enum: [north, east, south, west, none]
+  light:
+    type: string
+    enum: [low, medium, bright, direct]
+  cover_photo_id:
+    type: id
+    desc: Новая обложка — фото этого же растения в state ready; null — убрать обложку, в сетке будет заглушка
+
+response: Plant      # без plan и photos, next_tasks — до 5; «Почему так» клиент перезапрашивает через plants.get
+
+# Остальным участникам уходит houses.changed со scope plants, а если пересчёт сдвинул даты — ещё и со scope tasks.
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      nickname: [required, too_long]
+      pot_diameter_cm: [out_of_range]
+      custom_species_name: [too_long, not_allowed]
+      cover_photo_id: [not_allowed]     # чужое фото или ещё не ready
+  - code: species_not_found
+    category: not_found
+    desc: Вида с таким species_id нет
+  - code: not_found
+    category: not_found
+    desc: Растения нет
+  - code: forbidden
+    category: forbidden
+    desc: Роль helper или растение в архиве
+
+# 24 декабря Анна пересаживает «Декору» в глину. Вид уже Ficus elastica — 1 декабря модератор объединил с ним
+# предложение Бориса; полив зимой в прихожей без окна — 17 → 14 дней, срок задачи сдвинулся со 2 января на 30 декабря.
+golden:
+  - name: request
+    part: request
+    value:
+      pot_material: clay
+    json: '{"pot_material":"clay"}'
+  - name: pot_to_clay
+    part: response
+    value:
+      id: 01a22364-5601-753e-9278-061c9481ffcb
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      species_id: 019fc710-e100-7430-a91d-dd91c7a70642
+      species_name: Фикус эластика
+      custom_species: false
+      nickname: Декора
+      pot_material: clay
+      pot_diameter_cm: 20
+      pot_drainage: true
+      soil: universal
+      location_room: прихожая
+      window: none
+      light: low
+      next_tasks:
+        - {id: 01a27d5e-69f1-78d6-bebd-36bef129032c, plant_id: 01a22364-5601-753e-9278-061c9481ffcb, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Декора, kind: water, due_at: "2026-12-30T05:00:00.000Z", state: open}
+      created_at: "2026-11-28T18:21:47.905Z"
+    json: '{"created_at":"2026-11-28T18:21:47.905Z","custom_species":false,"house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a22364-5601-753e-9278-061c9481ffcb","light":"low","location_room":"прихожая","next_tasks":[{"due_at":"2026-12-30T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a27d5e-69f1-78d6-bebd-36bef129032c","kind":"water","plant_id":"01a22364-5601-753e-9278-061c9481ffcb","plant_name":"Декора","state":"open"}],"nickname":"Декора","pot_diameter_cm":20,"pot_drainage":true,"pot_material":"clay","soil":"universal","species_id":"019fc710-e100-7430-a91d-dd91c7a70642","species_name":"Фикус эластика","window":"none"}'

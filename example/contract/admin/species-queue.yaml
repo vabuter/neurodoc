@@ -1,0 +1,56 @@
+# admin.species_queue — очередь предложенных пользователями видов: по умолчанию pending, старые сверху; срок реакции
+# модератора — 3 рабочих дня. Общие отказы admin.* — в admin.overview. Сценарий — «Предложение нового вида и модерация».
+
+operation: admin.species_queue
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/admin/species/suggestions
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Очередь предложенных видов на модерацию."
+
+request:
+  status:
+    type: string
+    enum: [pending, approved, merged, rejected]
+    desc: По умолчанию pending — старые сверху; остальные статусы — новые решения сверху
+  cursor:
+    type: string
+    desc: next_cursor из прошлой страницы; страница — limit предложений
+  limit:
+    type: int
+    desc: Размер страницы, по умолчанию 50, максимум 200
+
+response:
+  items:
+    type: list<SpeciesSuggestion>
+    required: true
+  next_cursor:
+    type: string
+    desc: Нет — страниц больше нет
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      limit: [out_of_range]
+
+golden:
+  - name: ok
+    part: response
+    value:
+      items:
+        - id: 01a22364-aded-750f-ba82-126b74c533df
+          latin_name: Ficus decora
+          common_name: Фикус каучуконосный
+          locale: ru
+          note: "Так подписан в магазине: лист крупный, тёмный, глянцевый"
+          author_id: 01a0caa1-e44f-77de-a33d-1d51c776de69
+          plant_id: 01a22364-5601-753e-9278-061c9481ffcb
+          status: pending
+          created_at: "2026-11-28T18:22:10.413Z"
+    json: '{"items":[{"author_id":"01a0caa1-e44f-77de-a33d-1d51c776de69","common_name":"Фикус каучуконосный","created_at":"2026-11-28T18:22:10.413Z","id":"01a22364-aded-750f-ba82-126b74c533df","latin_name":"Ficus decora","locale":"ru","note":"Так подписан в магазине: лист крупный, тёмный, глянцевый","plant_id":"01a22364-5601-753e-9278-061c9481ffcb","status":"pending"}]}'

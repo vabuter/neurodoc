@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+   settings.json не уходит в бэкап: в нём git-токены открытым текстом.
+   Прогресс чтения и прочее не секретны и переезжают на новое устройство.
+-->
+<full-backup-content>
+    <exclude domain="file" path="settings.json" />
+</full-backup-content>

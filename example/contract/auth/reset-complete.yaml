@@ -1,0 +1,79 @@
+# auth.reset_complete — новый пароль по ссылке https://app.fikus.example/reset?token=… (30 мин, одноразовая). Гасит
+# ссылки сброса, отзывает все прежние сессии (auth.session_revoked с reason password_reset) и входит на этом
+# устройстве; неподтверждённый адрес считается подтверждённым — письмо доказало владение ящиком. Включён второй
+# фактор — сначала totp_required с новым flow на 5 мин: письмо доказывает ящик, но не телефон. Сценарий — «Сброс пароля».
+
+operation: auth.reset_complete
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/reset/complete
+status: live
+since: v1
+clients: [app, android, server]
+auth: none
+summary: "Новый пароль по токену из письма; отзывает все сессии и входит."
+
+request:
+  token:
+    type: string
+    required: true
+    desc: Параметр token из ссылки письма reset_password
+  new_password:
+    type: string
+    required: true
+    desc: 10–128 символов после NFC, не из списка частых утёкших паролей; прежний пароль не спрашивается
+  device_name:
+    type: string
+    desc: Как в auth.login, до 64 символов
+  platform:
+    type: string
+    required: true
+    enum: [web, android, ios]
+
+response: AuthResult   # signed_in | totp_required (новый flow для auth.totp_verify)
+
+errors:
+  - code: link_expired
+    category: conflict
+    desc: Ссылке больше 30 мин — «Запросите ссылку ещё раз»
+  - code: link_invalid
+    category: not_found
+    desc: Токен неизвестен или уже использован; успешный сброс гасит и все прочие ссылки сброса аккаунта
+  - code: invalid_fields
+    category: validation
+    fields:
+      new_password: [required, too_short, too_long, common_password]
+
+golden:
+  - name: signed_in
+    part: response
+    value:
+      state: signed_in
+      session_id: 01a30ba2-17d2-74e8-bd90-75f999e6db2e
+      access_token: access-demo-vera-2
+      access_expires_at: "2027-01-12T20:56:09.330Z"
+      refresh_token: refresh-demo-vera-2
+      refresh_expires_at: "2027-02-11T20:41:09.330Z"
+      account:
+        id: 01a2943a-0517-7033-93c0-609f8dec0e5a
+        email: vera@example.com
+        email_confirmed: true
+        display_name: Вера
+        locale: ru
+        time_zone: Europe/Moscow
+        units: metric
+        role: user
+        totp_enabled: false
+        digest_enabled: true
+        quiet_hours_start: "22:00"
+        quiet_hours_end: "08:00"
+        created_at: "2026-12-20T16:12:40.087Z"
+    json: '{"access_expires_at":"2027-01-12T20:56:09.330Z","access_token":"access-demo-vera-2","account":{"created_at":"2026-12-20T16:12:40.087Z","digest_enabled":true,"display_name":"Вера","email":"vera@example.com","email_confirmed":true,"id":"01a2943a-0517-7033-93c0-609f8dec0e5a","locale":"ru","quiet_hours_end":"08:00","quiet_hours_start":"22:00","role":"user","time_zone":"Europe/Moscow","totp_enabled":false,"units":"metric"},"refresh_expires_at":"2027-02-11T20:41:09.330Z","refresh_token":"refresh-demo-vera-2","session_id":"01a30ba2-17d2-74e8-bd90-75f999e6db2e","state":"signed_in"}'
+  - name: totp_required
+    part: response
+    value:
+      state: totp_required
+      flow_id: 01a30ba2-17d2-72af-9987-a0c84f897300
+    json: '{"flow_id":"01a30ba2-17d2-72af-9987-a0c84f897300","state":"totp_required"}'

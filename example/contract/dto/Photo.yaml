@@ -1,0 +1,62 @@
+# Photo — фото растения и его обработка. Файл идёт мимо API: photos.upload_url → PUT в хранилище →
+# photos.confirm → фоновая photo-process (EXIF с геометкой вырезается, WebP 1280 px и превью 320 px).
+# Вложен в Plant.cover_photo и Plant.photos. Сценарий — «Загрузка фото растения».
+
+dto: Photo
+status: live
+since: v1
+clients: [app, android, server]
+summary: "Фото растения и его обработка."
+
+fields:
+  id:
+    type: id
+    required: true
+    desc: Выдаёт photos.upload_url; из него же выводятся ключи объектов в корзине fikus-photos
+  plant_id:
+    type: id
+    required: true
+  state:
+    type: string
+    required: true
+    enum: [uploading, processing, ready, failed]
+    desc: >-
+      uploading — ссылка выдана, файла ещё нет (без photos.confirm за час фото удалит photo-orphans);
+      processing — идёт photo-process; ready — можно показывать; failed — обработка не удалась, оригинал удалён,
+      клиент предлагает загрузить снова
+  url:
+    type: url
+    desc: >-
+      Только у ready — WebP 1280 px, подписанная GET-ссылка на 1 ч. Подпись меняет адрес при каждом запросе,
+      поэтому кэшировать картинку клиент обязан по id: обработанное фото не меняется никогда
+  thumb_url:
+    type: url
+    desc: Только у ready — превью 320 px для сетки и журнала, подписано так же на 1 ч
+  width:
+    type: int
+    desc: Ширина картинки url в пикселях после обработки — клиент резервирует место до загрузки
+  height:
+    type: int
+    desc: Высота картинки url в пикселях
+  taken_at:
+    type: time
+    desc: Дата съёмки из EXIF, прочитанная до вырезания; хроника роста идёт по ней. Нет в EXIF — поля нет
+  created_at:
+    type: time
+    required: true
+    desc: Когда выдана ссылка загрузки
+
+# В golden подписи ссылок сокращены до выдуманных строк: настоящая подпись SigV4 длиннее и меняется каждый час.
+golden:
+  - name: ready
+    value:
+      id: 01a24ada-0760-7a28-8890-540aec10ab7c
+      plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677
+      state: ready
+      url: "https://s3.fikus.example/fikus-photos/photos/01a0bfc7-6674-75b3-9f0c-50151ec9cc4c/01a106e6-1f92-7a2d-a21c-7b73545b7677/01a24ada-0760-7a28-8890-540aec10ab7c/1280.webp?X-Amz-Date=20261215T094012Z&X-Amz-Expires=3600&X-Amz-Signature=demo-sig-1280"
+      thumb_url: "https://s3.fikus.example/fikus-photos/photos/01a0bfc7-6674-75b3-9f0c-50151ec9cc4c/01a106e6-1f92-7a2d-a21c-7b73545b7677/01a24ada-0760-7a28-8890-540aec10ab7c/320.webp?X-Amz-Date=20261215T094012Z&X-Amz-Expires=3600&X-Amz-Signature=demo-sig-320"
+      width: 960
+      height: 1280
+      taken_at: "2026-12-06T10:14:58.000Z"
+      created_at: "2026-12-06T10:15:32.448Z"
+    json: '{"created_at":"2026-12-06T10:15:32.448Z","height":1280,"id":"01a24ada-0760-7a28-8890-540aec10ab7c","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","state":"ready","taken_at":"2026-12-06T10:14:58.000Z","thumb_url":"https://s3.fikus.example/fikus-photos/photos/01a0bfc7-6674-75b3-9f0c-50151ec9cc4c/01a106e6-1f92-7a2d-a21c-7b73545b7677/01a24ada-0760-7a28-8890-540aec10ab7c/320.webp?X-Amz-Date=20261215T094012Z&X-Amz-Expires=3600&X-Amz-Signature=demo-sig-320","url":"https://s3.fikus.example/fikus-photos/photos/01a0bfc7-6674-75b3-9f0c-50151ec9cc4c/01a106e6-1f92-7a2d-a21c-7b73545b7677/01a24ada-0760-7a28-8890-540aec10ab7c/1280.webp?X-Amz-Date=20261215T094012Z&X-Amz-Expires=3600&X-Amz-Signature=demo-sig-1280","width":960}'

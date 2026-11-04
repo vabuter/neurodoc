@@ -1,0 +1,33 @@
+<svg class="bpmn" viewBox="0 0 1200 530" role="img" aria-label="BPMN: Привязка датчика: QR-код, Wi-Fi и первое показание">
+<style>
+.lane{fill:#fbfcfe;stroke:#c9d0e3;stroke-width:1}
+.lane-title{font:600 12px sans-serif;fill:#1b2236;text-anchor:middle}
+.task{fill:#f4f6fb;stroke:#4a5a85;stroke-width:1.4}
+.sys{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:1.4}
+.gw{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.gwsym{fill:none;stroke:#2f4fa3;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ev-start{fill:#fff;stroke:#2f4fa3;stroke-width:1.6}
+.ev-end{fill:#fff;stroke:#2f4fa3;stroke-width:4}
+.ev-err{fill:#e6ecfa;stroke:#2f4fa3;stroke-width:4}
+.flow{fill:none;stroke:#6c7590;stroke-width:1.4;marker-end:url(#arrow)}
+.nt{font:12px sans-serif;fill:#1b2236;text-anchor:middle}
+.lbl{font:11px sans-serif;fill:#56607a;paint-order:stroke;stroke:#fbfcfe;stroke-width:3px;stroke-linejoin:round}
+.op-chip{fill:#eef1fb;stroke:#2f4fa3;stroke-width:1.1;stroke-dasharray:4 3}
+.chip-label{font:11px monospace;fill:#2f4fa3;text-anchor:middle}
+</style>
+<!-- Схема к разделу [привязка датчика к дому](f4a56db2-4af0-45c9-af45-97acd5039f04); дальше датчик живёт по [циклу показаний](2f7b6290-af5b-45c2-acfd-d6a16526f803). Чипы: [sensors.claim](../contract/sensors/claim.yaml), [ingest.readings](../contract/ingest/readings.yaml), [sensors.alert](../contract/sensors/alert.yaml). -->
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c7590"/></marker></defs>
+<g class="lane"><rect x="10" y="10" width="1180" height="100"/><rect x="10" y="110" width="1180" height="120"/><rect x="10" y="230" width="1180" height="150"/><rect x="10" y="380" width="1180" height="140"/><path d="M110 10V520"/></g>
+<g class="lane-title"><text x="60" y="64">Пользователь</text><text x="60" y="167">Приложение<tspan x="60" dy="14">(Android)</tspan></text><text x="60" y="309">Сервер</text><text x="60" y="454">Датчик</text></g>
+<g class="flow"><path d="M160 60H206"/><path d="M324 60H344"/><path d="M410 77V160"/><path d="M410 180V270"/><path d="M390 290H265V83"/><path d="M410 310V334"/><path d="M430 290H480V170H500"/><path d="M560 193V397"/><path d="M612 420H670"/><path d="M690 400V193"/><path d="M690 147V124H560V147"/><path d="M690 440V469"/><path d="M710 420H782"/><path d="M840 403V310"/><path d="M860 290H970V405"/><path d="M955 420H898"/><path d="M840 270V187"/><path d="M891 170H932"/><path d="M1028 170H1084"/></g>
+<g class="task"><rect x="206" y="37" width="119" height="46" rx="7"/><rect x="344" y="43" width="132" height="34" rx="7"/><rect x="500" y="147" width="119" height="46" rx="7"/><rect x="642" y="147" width="96" height="46" rx="7"/><rect x="932" y="147" width="96" height="46" rx="7"/><rect x="508" y="397" width="105" height="46" rx="7"/></g>
+<g class="op-chip"><rect x="359" y="160" width="102" height="20" rx="4"/><rect x="789" y="153" width="102" height="34" rx="4"/><rect x="782" y="403" width="117" height="34" rx="4"/></g>
+<g class="gw"><path d="M410 270l20 20-20 20-20-20z"/><path d="M840 270l20 20-20 20-20-20z"/><path d="M690 400l20 20-20 20-20-20z"/></g>
+<g class="ev-start"><circle cx="145" cy="60" r="15"/><circle cx="970" cy="420" r="15"/><circle cx="970" cy="420" r="12"/></g>
+<g class="ev-end"><circle cx="1100" cy="170" r="15"/><circle cx="690" cy="485" r="15"/></g>
+<g class="ev-err"><circle cx="410" cy="350" r="15"/></g>
+<g class="gwsym"><path d="M404 284l12 12m0-12l-12 12M414 342l-7 9h6l-7 8M834 284l12 12m0-12l-12 12M684 414l12 12m0-12l-12 12M970 414v6l4 3"/></g>
+<g class="nt"><text x="145" y="89">Датчик<tspan x="145" dy="14">распакован</tspan></text><text x="265" y="57">Сканировать QR<tspan x="265" dy="14">или ввести код</tspan></text><text x="410" y="64">Выбрать растение</text><text x="560" y="167">Передать Wi-Fi<tspan x="560" dy="14">по BLE</tspan></text><text x="690" y="167">Подсказка<tspan x="690" dy="14">и повтор</tspan></text><text x="980" y="167">Предложить<tspan x="980" dy="14">калибровку</tspan></text><text x="1123" y="167" text-anchor="start">Датчик<tspan x="1123" dy="14">работает</tspan></text><text x="426" y="274" text-anchor="start">Ответ?</text><text x="387" y="340" text-anchor="end">sensor_already_claimed —<tspan x="387" dy="14">в поддержку; rate_limited —</tspan><tspan x="387" dy="14">10 попыток в час</tspan></text><text x="813" y="294" text-anchor="end">state?</text><text x="560" y="417">Подключиться<tspan x="560" dy="14">к Wi-Fi</tspan></text><text x="674" y="444" text-anchor="end">За 60 с?</text><text x="713" y="482" text-anchor="start">Мигает 1 раз:<tspan x="713" dy="14">нет Wi-Fi</tspan></text><text x="970" y="449">буфер цел,<tspan x="970" dy="14">повтор через минуту</tspan></text></g>
+<g class="chip-label"><text x="410" y="174">sensors.claim</text><text x="840" y="167">sensors.alert</text><text x="840" y="417">ingest.readings</text></g>
+<g class="lbl"><text x="840" y="181" text-anchor="middle">online</text><text x="840" y="431" text-anchor="middle">первое показание</text><text x="384" y="271" text-anchor="end">claim_code_invalid —<tspan x="384" dy="13">повторить ввод</tspan></text><text x="486" y="244">ok: Sensor<tspan x="486" dy="13">offline</tspan></text><text x="696" y="374">нет, ещё<tspan x="696" dy="13">попытка</tspan></text><text x="696" y="454">3-я неудача</text><text x="716" y="414">да</text><text x="866" y="270">unclaimed: показание<tspan x="866" dy="13">опередило привязку</tspan></text><text x="846" y="236">accepted:<tspan x="846" dy="13">online</tspan></text></g>
+</svg>

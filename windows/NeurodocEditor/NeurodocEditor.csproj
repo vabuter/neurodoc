@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>NeurodocEditor</RootNamespace>
+    <AssemblyName>NeurodocEditor</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64;ARM64</Platforms>
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>false</SelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <ApplicationTitle>Neurodoc Editor</ApplicationTitle>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- Иначе SDK допишет +<sha> к InformationalVersion поверх нашей строки -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <!-- ======== Версия приложения ========
+       Единственный источник — git-тег вида vX.Y.Z на коммите в main. Хардкодить версию
+       здесь нельзя: она разъедется с Android-версией, которая читает тот же тег.
+       Сборка без git (архив без .git, git не в PATH) не падает, а честно показывает
+       0.0.0-nogit: заметный маркер лучше правдоподобной выдумки.
+       Хук на PrepareForBuild — самый ранний таргет сборки: свойства версии обязаны быть
+       готовы до GetAssemblyAttributes, который и превращает их в атрибуты сборки. -->
+  <Target Name="SetVersionFromGit" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <_GitTag></_GitTag>
+      <_GitFull></_GitFull>
+    </PropertyGroup>
+    <!-- 2>nul: на репозитории без тегов git describe ругается в stderr,
+         и без глушения это мусор в выводе каждой сборки -->
+    <Exec Command="git describe --tags --abbrev=0 --match &quot;v[0-9]*&quot; 2>nul"
+          WorkingDirectory="$(MSBuildProjectDirectory)" ConsoleToMSBuild="true"
+          StandardOutputImportance="low" ContinueOnError="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitTag" />
+    </Exec>
+    <Exec Command="git describe --tags --dirty --always --match &quot;v[0-9]*&quot; 2>nul"
+          WorkingDirectory="$(MSBuildProjectDirectory)" ConsoleToMSBuild="true"
+          StandardOutputImportance="low" ContinueOnError="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitFull" />
+    </Exec>
+    <PropertyGroup>
+      <_GitTag>$(_GitTag.Trim())</_GitTag>
+      <_GitFull>$(_GitFull.Trim())</_GitFull>
+
+      <!-- Считаем в собственные свойства, а не сразу в VersionPrefix/AssemblyVersion:
+           те SDK уже задал на этапе вычисления проекта (1.0.0), поэтому откат
+           по Condition="'$(VersionPrefix)' == ''" не сработал бы никогда. -->
+
+      <!-- Числовая часть — только из тега: AssemblyVersion не терпит букв -->
+      <_AppVersionNumeric Condition="$(_GitTag.StartsWith('v'))">$(_GitTag.Substring(1))</_AppVersionNumeric>
+      <_AppVersionNumeric Condition="'$(_AppVersionNumeric)' == ''">0.0.0</_AppVersionNumeric>
+
+      <!-- Строка для показа — вывод git describe как есть, без ведущего v -->
+      <_AppVersionDisplay Condition="$(_GitFull.StartsWith('v'))">$(_GitFull.Substring(1))</_AppVersionDisplay>
+      <_AppVersionDisplay Condition="'$(_AppVersionDisplay)' == '' and '$(_GitFull)' != ''">0.0.0+g$(_GitFull)</_AppVersionDisplay>
+      <_AppVersionDisplay Condition="'$(_AppVersionDisplay)' == ''">0.0.0-nogit</_AppVersionDisplay>
+
+      <VersionPrefix>$(_AppVersionNumeric)</VersionPrefix>
+      <Version>$(_AppVersionNumeric)</Version>
+      <AssemblyVersion>$(_AppVersionNumeric).0</AssemblyVersion>
+      <FileVersion>$(_AppVersionNumeric).0</FileVersion>
+      <InformationalVersion>$(_AppVersionDisplay)</InformationalVersion>
+    </PropertyGroup>
+    <Message Importance="high" Text="Версия сборки: $(InformationalVersion)" />
+  </Target>
+  <!-- Копируем ресурсы Assets (шрифты, иконки) в выходную папку: implicit-правила WASDK их не копируют -->
+  <ItemGroup>
+    <_AppAssetFiles Include="$(MSBuildProjectDirectory)\Assets\**" />
+  </ItemGroup>
+  <Target Name="CopyAppAssets" AfterTargets="Build">
+    <Copy SourceFiles="@(_AppAssetFiles)" DestinationFolder="$(OutDir)Assets\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyAppAssetsOnPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(_AppAssetFiles)" DestinationFolder="$(PublishDir)Assets\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2526" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.11" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+</Project>

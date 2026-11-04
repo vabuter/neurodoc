@@ -1,0 +1,74 @@
+# care.skip — пропустить задачу: «в этот раз не нужно». Следующая считается от плановой даты, а не от факта —
+# ритм не сбивается; в журнал ложится запись skip с причиной. Задачу уже выполнили — исход already_done, как у
+# care.complete. Идемпотентна по Idempotency-Key. Сценарий — «Выполнение задачи ухода».
+
+operation: care.skip
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/tasks/{task_id}/skip
+  idempotency_key: true      # повтор после обрыва не пишет в журнал второй пропуск
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Пропустить задачу; следующая считается от плановой даты."
+
+request:
+  task_id:
+    type: id
+    required: true
+    desc: Задача — параметр пути; open или snoozed, пропустить может любой участник
+  reason:
+    type: string
+    desc: Причина до 200 символов — «земля ещё влажная»; пишется в журнал, план её не читает
+
+response:
+  state:
+    type: string
+    required: true
+    enum: [skipped, already_done]
+    desc: skipped — пропуск записан; already_done — задачу успели выполнить, пропуск не нужен и не записан
+  task:
+    type: CareTask
+    required: true
+    desc: Задача в итоговом состоянии — skipped или done
+  next_task:
+    type: CareTask
+    desc: Только при skipped — следующая задача того же вида, от плановой даты пропущенной
+  done_by_name:
+    type: string
+    desc: Только при already_done — кто выполнил, как в care.complete
+
+errors:
+  - code: task_closed
+    category: conflict
+    desc: Задачу закрыл пересчёт плана или архивация растения
+  - code: invalid_fields
+    category: validation
+    fields:
+      reason: [too_long]
+
+# 10 декабря Борис пропускает поворот Бенджи — плановый срок 10-е, следующий поворот 24-го, как в плане.
+# already_done: 19 декабря Анна хочет пропустить полив («земля ещё влажная»), но Борис уже полил в 08:12.
+golden:
+  - name: request
+    part: request
+    value:
+      reason: Повернули вчера при уборке
+    json: '{"reason":"Повернули вчера при уборке"}'
+  - name: skipped
+    part: response
+    value:
+      state: skipped
+      task: {id: 01a216a9-7a5c-7334-b0ba-b5bf6df3e3a0, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: rotate, due_at: "2026-12-10T05:00:00.000Z", state: skipped, resolved_at: "2026-12-10T06:20:44.118Z", resolved_by: 01a0caa1-e44f-77de-a33d-1d51c776de69}
+      next_task: {id: 01a25e9c-7edd-7c4d-8d47-a5a494cd7d30, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: rotate, due_at: "2026-12-24T05:00:00.000Z", state: open}
+    json: '{"next_task":{"due_at":"2026-12-24T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a25e9c-7edd-7c4d-8d47-a5a494cd7d30","kind":"rotate","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","state":"open"},"state":"skipped","task":{"due_at":"2026-12-10T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a216a9-7a5c-7334-b0ba-b5bf6df3e3a0","kind":"rotate","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","resolved_at":"2026-12-10T06:20:44.118Z","resolved_by":"01a0caa1-e44f-77de-a33d-1d51c776de69","state":"skipped"}}'
+  - name: already_done
+    part: response
+    value:
+      state: already_done
+      task: {id: 01a25957-8a8b-710e-9089-a2aa8c841494, plant_id: 01a106e6-1f92-7a2d-a21c-7b73545b7677, house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c, plant_name: Бенджи, kind: water, due_at: "2026-12-19T05:00:00.000Z", state: done, resolved_at: "2026-12-19T05:12:07.344Z", resolved_by: 01a0caa1-e44f-77de-a33d-1d51c776de69}
+      done_by_name: Борис
+    json: '{"done_by_name":"Борис","state":"already_done","task":{"due_at":"2026-12-19T05:00:00.000Z","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a25957-8a8b-710e-9089-a2aa8c841494","kind":"water","plant_id":"01a106e6-1f92-7a2d-a21c-7b73545b7677","plant_name":"Бенджи","resolved_at":"2026-12-19T05:12:07.344Z","resolved_by":"01a0caa1-e44f-77de-a33d-1d51c776de69","state":"done"}}'

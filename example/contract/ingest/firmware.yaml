@@ -1,0 +1,74 @@
+# ingest.firmware — есть ли для датчика новая прошивка. Датчик спрашивает раз в сутки (или сразу после
+# firmware_check в ответе на пачку) и только при заряде больше 30 %. Раскатка идёт волнами 5 → 25 → 50 → 100 %
+# из админки (admin.rollout); в волну датчик попадает по хэшу серийного номера. Сценарий — «Обновление прошивки по воздуху».
+
+operation: ingest.firmware
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/device/firmware
+  host: ingest.fikus.example
+status: draft
+since: v1
+clients: [sense, server]
+auth: device       # Authorization: Bearer <токен устройства>
+summary: "Есть ли для датчика новая прошивка."
+
+request:
+  current:
+    type: string
+    required: true
+    desc: Текущая версия прошивки в semver — 1.4.2
+
+# Датчик качает образ по url, сверяет sha256 и подпись secure boot v2, пишет образ в свободный раздел (ota_0 или
+# ota_1) и перезагружается «на испытании»: не ушли показания за 2 пробуждения — откат на прежний раздел.
+response:
+  state:
+    type: string
+    required: true
+    enum: [up_to_date, available]
+    desc: >-
+      up_to_date — новее нет, раскатка на паузе или датчик не попал в текущую волну; available — поля ниже
+      заполнены
+  version:
+    type: string
+    desc: Только при available — версия образа в semver
+  url:
+    type: url
+    desc: Только при available — подписанная GET-ссылка на 1 ч на образ в корзине fikus-firmware
+  sha256:
+    type: string
+    desc: >-
+      Только при available — SHA-256 образа: 32 байта в base64url без «=», 43 символа, как и прочие двоичные
+      значения контракта (challenge_prefix в auth.start). Датчик сверяет его с хэшем записанного раздела до перезагрузки
+  size_bytes:
+    type: int
+    desc: Только при available — размер образа; раздел приложения — 1,5 МБ
+  min_battery_pct:
+    type: int
+    desc: Только при available — ниже этого заряда не начинать запись, 30; иначе отложить до завтра
+
+errors:
+  - code: device_unknown
+    category: auth
+    desc: Токен неизвестен — датчик мигает 3 раза и засыпает
+
+# 3 февраля: 1.5.0 раскатывается на 5 % — датчик у Бенджи попал в волну, датчик у монстеры — нет.
+# Подпись ссылки в golden сокращена.
+golden:
+  - name: available
+    part: response
+    value:
+      state: available
+      version: "1.5.0"
+      url: "https://s3.fikus.example/fikus-firmware/sense/1.5.0/fikus-sense-1.5.0.bin?X-Amz-Date=20270203T071405Z&X-Amz-Expires=3600&X-Amz-Signature=demo-fw-sig"
+      sha256: 1AyHDT_StfwOAhV8eP4n_EsWt72dbRxtDIODZxsbcK8
+      size_bytes: 1187840
+      min_battery_pct: 30
+    json: '{"min_battery_pct":30,"sha256":"1AyHDT_StfwOAhV8eP4n_EsWt72dbRxtDIODZxsbcK8","size_bytes":1187840,"state":"available","url":"https://s3.fikus.example/fikus-firmware/sense/1.5.0/fikus-sense-1.5.0.bin?X-Amz-Date=20270203T071405Z&X-Amz-Expires=3600&X-Amz-Signature=demo-fw-sig","version":"1.5.0"}'
+  - name: up_to_date
+    part: response
+    value:
+      state: up_to_date
+    json: '{"state":"up_to_date"}'

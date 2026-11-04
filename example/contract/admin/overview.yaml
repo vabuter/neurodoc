@@ -1,0 +1,85 @@
+# admin.overview — цифры главного экрана админки. Считает их не запрос, а фоновая задача admin-stats раз в 10 мин:
+# экран открывают часто, а полный подсчёт по таблицам дорогой. Общие отказы всех admin.* перечислены здесь,
+# в остальных файлах admin.* они не повторяются. Описание — «Админка: обзор и пользователи».
+
+operation: admin.overview
+kind: request
+transport: http
+http:
+  method: GET
+  path: /v1/admin/overview
+status: draft
+since: v1
+clients: [admin, server]
+auth: admin
+summary: "Сводные цифры для главного экрана админки."
+
+request: {}
+
+response:
+  users_total:
+    type: int
+    required: true
+    desc: Аккаунтов всего, кроме удалённых account-purge
+  users_new_7d:
+    type: int
+    required: true
+    desc: Зарегистрировались за 7 дней
+  houses_total:
+    type: int
+    required: true
+  plants_total:
+    type: int
+    required: true
+    desc: Без архивных
+  sensors_online:
+    type: int
+    required: true
+  sensors_offline:
+    type: int
+    required: true
+    desc: Молчат больше 3 ч
+  sensors_battery_low:
+    type: int
+    required: true
+    desc: Заряд ниже 15 %
+  tasks_done_7d:
+    type: int
+    required: true
+  reminders_sent_24h:
+    type: int
+    required: true
+    desc: Напоминаний за сутки — событием, пушем и в дайджесте
+  emails_bounced_24h:
+    type: int
+    required: true
+    desc: Отказов почты за сутки; рост — повод проверить почтовый релей
+  computed_at:
+    type: time
+    required: true
+    desc: Когда admin-stats пересчитала цифры
+
+errors:
+  - code: admin_totp_required
+    category: forbidden
+    desc: Общий для всех admin.* — у администратора не включён второй фактор
+  - code: admin_reauth_required
+    category: forbidden
+    desc: Общий для всех admin.* — сессия старше 12 ч, нужен повторный вход
+
+golden:
+  - name: ok
+    part: response
+    value:
+      users_total: 38
+      users_new_7d: 6
+      houses_total: 31
+      plants_total: 412
+      sensors_online: 17
+      sensors_offline: 2
+      sensors_battery_low: 1
+      tasks_done_7d: 1290
+      reminders_sent_24h: 87
+      emails_bounced_24h: 1
+      computed_at: "2026-12-15T09:40:00.000Z"
+    json: '{"computed_at":"2026-12-15T09:40:00.000Z","emails_bounced_24h":1,"houses_total":31,"plants_total":412,"reminders_sent_24h":87,"sensors_battery_low":1,"sensors_offline":2,"sensors_online":17,"tasks_done_7d":1290,"users_new_7d":6,"users_total":38}'

@@ -1,0 +1,49 @@
+# Операции API и DTO: дом, приглашения и датчики
+
+Доменная выборка из [реестра операций API](46a3b885-d219-41b0-9e37-648a0f894800): кто из участников дома что может и чем операция заканчивается. Смысл домена — в [доме и ролях участников](a7855b04-c4ec-4d2f-b276-e4297318a7f5) и в [концепции датчиков Fikus Sense](7abfff6e-a204-4b15-af33-ae3193df50d4).
+
+## Операции
+
+| операция | метод и путь | кто может | что делает | state и ошибки |
+|---|---|---|---|---|
+| [houses.list](../contract/houses/list.yaml) | GET /v1/houses | любой вошедший | Дома, в которых состоит пользователь. | — |
+| [houses.get](../contract/houses/get.yaml) | GET /v1/houses/{house_id} | owner, member, helper | Дом целиком: настройки, участники, отпуск. | not_found, forbidden |
+| [houses.update](../contract/houses/update.yaml) | PATCH /v1/houses/{house_id} | owner | Настройки дома: название, пояс, полушарие, утреннее окно. | forbidden; validation — окно короче 30 мин или через полночь |
+| [houses.member_update](../contract/houses/member-update.yaml) | PATCH /v1/houses/{house_id}/members/{account_id} | owner | Смена роли участника или срока доступа помощника. | last_owner (conflict), helper_needs_until (validation), forbidden |
+| [houses.member_remove](../contract/houses/member-remove.yaml) | DELETE /v1/houses/{house_id}/members/{account_id} | owner — любого, любой участник — себя | Удалить участника из дома или выйти самому. | last_owner (conflict), forbidden |
+| [houses.vacation](../contract/houses/vacation.yaml) | PUT /v1/houses/{house_id}/vacation | owner | Включить, изменить или досрочно завершить режим отпуска. | helper_not_member, helper_access_too_short, vacation_too_long, starts_too_far (validation), forbidden |
+| [houses.changed](../contract/houses/changed.yaml), push | WebSocket /v1/push, событие houses.changed | участники дома, кроме автора изменения | Что-то изменилось в доме — перезапросить затронутое. | scope: plants, tasks, members, vacation, sensors, house |
+| [invites.create](../contract/invites/create.yaml) | POST /v1/houses/{house_id}/invites | owner | Создать приглашение в дом: код и ссылка. | helper_needs_until (validation), invite_limit (conflict, 5 активных), house_member_limit (conflict, 10), forbidden |
+| [invites.preview](../contract/invites/preview.yaml) | GET /v1/invites/{code} | кто угодно | Что за приглашение — без входа. | state valid / expired / used; invite_invalid (not_found), rate_limited (20 на IP в час) |
+| [invites.accept](../contract/invites/accept.yaml) | POST /v1/invites/{code}/accept | любой вошедший | Принять приглашение и вступить в дом. | state joined / already_member; invite_invalid (not_found), house_member_limit (conflict), house_limit (conflict, 5 домов) |
+| [sensors.claim](../contract/sensors/claim.yaml) | POST /v1/houses/{house_id}/sensors | owner, member | Привязать датчик к дому кодом с коробки. | claim_code_invalid (not_found), sensor_already_claimed (conflict), rate_limited (10 в час на аккаунт), forbidden (helper) |
+| [sensors.list](../contract/sensors/list.yaml) | GET /v1/houses/{house_id}/sensors | owner, member, helper | Датчики дома с последними показаниями. | — |
+| [sensors.update](../contract/sensors/update.yaml) | PATCH /v1/sensors/{sensor_id} | owner, member | Имя датчика и растение, над которым он стоит. | forbidden (helper), not_found |
+| [sensors.calibrate](../contract/sensors/calibrate.yaml) | POST /v1/sensors/{sensor_id}/calibration | owner, member | Шаг двухточечной калибровки: сухая точка, мокрая точка или сброс. | no_fresh_reading (conflict), points_too_close (validation) |
+| [sensors.readings](../contract/sensors/readings.yaml) | GET /v1/sensors/{sensor_id}/readings | owner, member, helper | Показания датчика за период для графика. | range_too_long (validation) |
+| [sensors.alert](../contract/sensors/alert.yaml), push | WebSocket /v1/push, событие sensors.alert | участники дома | Тревога датчика: нет связи, снова на связи, низкий заряд, сбой прошивки. | alert: offline, online, battery_low, firmware_failed |
+| [ingest.readings](../contract/ingest/readings.yaml) | POST /v1/device/readings, хост ingest.fikus.example | датчик (auth device) | Приём пачки показаний от датчика на ingest.fikus.example. | state accepted / unclaimed; device_unknown (auth), too_many_readings (validation), rate_limited (1 в минуту на датчик) |
+| [ingest.firmware](../contract/ingest/firmware.yaml) | GET /v1/device/firmware, хост ingest.fikus.example | датчик (auth device) | Есть ли для датчика новая прошивка. | state up_to_date / available; device_unknown (auth) |
+
+Прочерк — своих кодов нет. Общие отказы token_expired и session_revoked, а также not_found и forbidden для того, кто не состоит в доме, в таблице не повторяются, как и invalid_fields — его поля перечислены в YAML; helper получает forbidden везде, где его нет в колонке «кто может».
+
+## Права
+
+owner и member в отношении датчиков равны: привязывают, перевешивают и калибруют. Разница между ними — в управлении домом: участники, приглашения, отпуск и настройки — только у owner. helper читает дом, датчики и показания и отмечает задачи, но ничего не меняет: датчик двигает план ухода, а помощнику на время отпуска нужен уход, а не право перенастроить чужой полив.
+
+## Хост ingest
+
+ingest.readings и ingest.firmware — единственные операции с авторизацией device: вместо JWT в заголовке Authorization идёт токен устройства, fikus-api сверяет его SHA-256. Отказы — то же тело Problem, но клиент у них один — прошивка, и ветвится она по коду: device_unknown — мигнуть 3 раза и уснуть, rate_limited — повторить через retry_after. На имени ingest nginx пропускает только /v1/device/… и /health, а fikus-api узнаёт запросы датчиков по имени хоста.
+
+## DTO
+
+| DTO | что описывает | на что смотреть |
+|---|---|---|
+| [House](../contract/dto/House.yaml) | Дом: настройки, участники, отпуск. | members — только в houses.get; my_role; vacation_helper_id, vacation_starts_at, vacation_ends_at |
+| [HouseMember](../contract/dto/HouseMember.yaml) | Участник дома и его роль. | access_until — только у helper; по joined_at выбирают нового owner при удалении аккаунта; deletion_at — пока аккаунт участника ждёт удаления |
+| [Sensor](../contract/dto/Sensor.yaml) | Датчик Fikus Sense: состояние, калибровка, последнее показание. | serial FS1-XXXXXX — надпись на корпусе, а адресуется датчик по id; calibrated, raw_dry, raw_wet |
+| [SensorReading](../contract/dto/SensorReading.yaml) | Одно показание датчика. | moisture_pct считает сервер — в запросе датчика его нет; temperature_dc — десятые доли °C |
+
+## Статусы
+
+Дом и приглашения — live: меняются только совместимо, новым необязательным полем. Датчики и приём — draft до пилота на 20 датчиках: пока датчиков у пользователей нет, контракт можно менять несовместимо. События канала push — в [реестре push-событий](27694ddc-5ed8-415d-b3af-78cc80863cf3), все DTO — в [реестре DTO](28dd7c6b-e4e0-4770-992e-e7fd5cf988e0).

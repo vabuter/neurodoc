@@ -1,0 +1,99 @@
+# sensors.calibrate — шаг двухточечной калибровки щупа: сухая точка (датчик в воздухе), мокрая (щуп в стакане
+# воды) или сброс к заводским. Ёмкостный щуп меряет диэлектрическую проницаемость, а не «процент воды», и у каждого
+# щупа свой разброс — поэтому калибруется конкретный датчик, а грунт учитывается порогами растения.
+
+operation: sensors.calibrate
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/sensors/{sensor_id}/calibration
+status: draft
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Шаг двухточечной калибровки: сухая точка, мокрая точка или сброс."
+
+request:
+  sensor_id:
+    type: id
+    required: true
+    desc: Датчик — параметр пути
+  step:
+    type: string
+    required: true
+    enum: [dry, wet, reset]
+    desc: >-
+      dry — запомнить сухую точку; wet — взять мокрую и ввести в силу обе вместе; reset — вернуть заводские.
+      Точку сервер берёт из последнего сырого показания не старше 40 мин — один цикл датчика с запасом, —
+      поэтому перед шагом нажимают на датчике «отправить сейчас» (не чаще раза в минуту)
+
+# Точки вступают в силу вместе, после wet: сухая точка шага dry ждёт мокрую час, а без неё wet ставится в пару
+# к действующей raw_dry — так переделывают одну мокрую точку. Ответ на dry — датчик с прежними точками.
+response: Sensor     # после wet — calibrated true, raw_dry и raw_wet новые; после reset — false и заводские
+
+errors:
+  - code: no_fresh_reading
+    category: conflict
+    desc: Последнее показание старше 40 мин — датчик не на связи, нужна свежая пачка
+  - code: points_too_close
+    category: validation
+    desc: >-
+      Сухая точка выше мокрой меньше чем на 300 единиц: щуп не дошёл до воды или остался в земле, а такие точки
+      растягивают любой шум до десятков процентов. Действующие точки не меняются
+  - code: forbidden
+    category: forbidden
+    desc: Роль helper
+  - code: not_found
+    category: not_found
+    desc: Датчика нет
+
+# 18 декабря, сразу после привязки: в 18:40 по Москве датчик в воздухе (3046), в 18:42 — в стакане воды (1132).
+# В last_reading проценты посчитаны при приёме по заводским точкам: в воздухе 0, в воде 99.
+# points_too_close — 20 декабря, после переезда на монстеру Анна сделала обе точки в воздухе.
+golden:
+  - name: dry
+    part: response
+    value:
+      id: 01a15889-fa80-7cd8-99ac-4ae23868e451
+      serial: FS1-7MZQ4B
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_id: 01a1b588-86b8-7606-ab6b-ce77d77d6a4b
+      name: Датчик у калатеи
+      state: online
+      firmware: "1.4.2"
+      battery_pct: 93
+      last_seen_at: "2026-12-18T15:40:13.877Z"
+      last_reading: {at: "2026-12-18T15:40:12.000Z", moisture_raw: 3046, moisture_pct: 0, temperature_dc: 231, light_lux: 380, battery_mv: 3302}
+      calibrated: false
+      raw_dry: 2985
+      raw_wet: 1110
+      claimed_at: "2026-12-18T15:31:09.664Z"
+    json: '{"battery_pct":93,"calibrated":false,"claimed_at":"2026-12-18T15:31:09.664Z","firmware":"1.4.2","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a15889-fa80-7cd8-99ac-4ae23868e451","last_reading":{"at":"2026-12-18T15:40:12.000Z","battery_mv":3302,"light_lux":380,"moisture_pct":0,"moisture_raw":3046,"temperature_dc":231},"last_seen_at":"2026-12-18T15:40:13.877Z","name":"Датчик у калатеи","plant_id":"01a1b588-86b8-7606-ab6b-ce77d77d6a4b","raw_dry":2985,"raw_wet":1110,"serial":"FS1-7MZQ4B","state":"online"}'
+  - name: wet
+    part: response
+    value:
+      id: 01a15889-fa80-7cd8-99ac-4ae23868e451
+      serial: FS1-7MZQ4B
+      house_id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+      plant_id: 01a1b588-86b8-7606-ab6b-ce77d77d6a4b
+      name: Датчик у калатеи
+      state: online
+      firmware: "1.4.2"
+      battery_pct: 93
+      last_seen_at: "2026-12-18T15:42:21.519Z"
+      last_reading: {at: "2026-12-18T15:42:20.000Z", moisture_raw: 1132, moisture_pct: 99, temperature_dc: 214, light_lux: 360, battery_mv: 3301}
+      calibrated: true
+      raw_dry: 3046
+      raw_wet: 1132
+      claimed_at: "2026-12-18T15:31:09.664Z"
+    json: '{"battery_pct":93,"calibrated":true,"claimed_at":"2026-12-18T15:31:09.664Z","firmware":"1.4.2","house_id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","id":"01a15889-fa80-7cd8-99ac-4ae23868e451","last_reading":{"at":"2026-12-18T15:42:20.000Z","battery_mv":3301,"light_lux":360,"moisture_pct":99,"moisture_raw":1132,"temperature_dc":214},"last_seen_at":"2026-12-18T15:42:21.519Z","name":"Датчик у калатеи","plant_id":"01a1b588-86b8-7606-ab6b-ce77d77d6a4b","raw_dry":3046,"raw_wet":1132,"serial":"FS1-7MZQ4B","state":"online"}'
+  - name: points_too_close
+    part: problem
+    value:
+      code: points_too_close
+      category: validation
+      message: Сухая и мокрая точки почти не отличаются (3051 и 3037). Опустите щуп в воду до отметки и отправьте показание ещё раз
+      fields: []
+      request_id: 01a294a7-bcaa-7bd0-a16e-31cd27b0de2d
+    json: '{"category":"validation","code":"points_too_close","fields":[],"message":"Сухая и мокрая точки почти не отличаются (3051 и 3037). Опустите щуп в воду до отметки и отправьте показание ещё раз","request_id":"01a294a7-bcaa-7bd0-a16e-31cd27b0de2d"}'

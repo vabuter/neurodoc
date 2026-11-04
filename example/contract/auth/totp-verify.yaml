@@ -1,0 +1,90 @@
+# auth.totp_verify — второй шаг входа после state totp_required: код из приложения-аутентификатора (RFC 6238, 6 цифр,
+# шаг 30 с, допуск ±1 шаг) или одноразовый код восстановления. Принимает только flow с отметкой «пароль принят»;
+# 5 попыток на flow, код уже принятого шага второй раз не проходит. Сценарий — «Вход: identifier-first,
+# вычислительная задача и второй фактор».
+
+operation: auth.totp_verify
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/auth/totp/verify
+status: live
+since: v1
+clients: [app, admin, android, server]
+auth: none
+summary: "Второй шаг входа: код TOTP или код восстановления."
+
+request:
+  flow_id:
+    type: id
+    required: true
+    desc: Flow из ответа totp_required
+  code:
+    type: string
+    desc: 6 цифр из приложения; ровно одно из code и recovery_code
+  recovery_code:
+    type: string
+    desc: Код восстановления XXXX-XXXX (Crockford Base32, регистр и дефис не важны); после входа гаснет
+
+response: AuthResult   # всегда signed_in; вход при pending_deletion отменяет удаление, как в auth.login
+
+errors:
+  - code: invalid_code
+    category: auth
+    desc: Код не подошёл; +1 к попыткам flow, клиент показывает, сколько осталось
+  - code: code_reused
+    category: auth
+    desc: Код этого или более раннего шага уже принят — подсмотренный код бесполезен; ждать следующий
+  - code: flow_expired
+    category: auth
+    desc: Flow истёк — вход с начала
+  - code: rate_limited
+    category: rate_limit
+    desc: Пятая неудача — flow закрыт, клиент возвращается на экран адреса
+  - code: invalid_fields
+    category: validation
+    fields:
+      code: [required, invalid_format]          # нет ни code, ни recovery_code
+      recovery_code: [not_allowed, invalid_format]   # прислали оба
+
+golden:
+  - name: request
+    part: request
+    value:
+      flow_id: 01a27db1-a540-7567-a601-dbabb231402c
+      code: "604127"
+    json: '{"code":"604127","flow_id":"01a27db1-a540-7567-a601-dbabb231402c"}'
+  - name: signed_in
+    part: response
+    value:
+      state: signed_in
+      session_id: 01a27db2-1012-764b-9e41-c4a7292477fe
+      access_token: access-demo-boris-1
+      access_expires_at: "2026-12-16T07:27:31.250Z"
+      refresh_token: refresh-demo-boris-1
+      refresh_expires_at: "2027-01-15T07:12:31.250Z"
+      account:
+        id: 01a0caa1-e44f-77de-a33d-1d51c776de69
+        email: boris@example.com
+        email_confirmed: true
+        display_name: Борис
+        locale: en
+        time_zone: Europe/Moscow
+        units: metric
+        role: user
+        totp_enabled: true
+        digest_enabled: false
+        quiet_hours_start: "23:00"
+        quiet_hours_end: "07:00"
+        created_at: "2026-09-22T19:40:02.511Z"
+    json: '{"access_expires_at":"2026-12-16T07:27:31.250Z","access_token":"access-demo-boris-1","account":{"created_at":"2026-09-22T19:40:02.511Z","digest_enabled":false,"display_name":"Борис","email":"boris@example.com","email_confirmed":true,"id":"01a0caa1-e44f-77de-a33d-1d51c776de69","locale":"en","quiet_hours_end":"07:00","quiet_hours_start":"23:00","role":"user","time_zone":"Europe/Moscow","totp_enabled":true,"units":"metric"},"refresh_expires_at":"2027-01-15T07:12:31.250Z","refresh_token":"refresh-demo-boris-1","session_id":"01a27db2-1012-764b-9e41-c4a7292477fe","state":"signed_in"}'
+  - name: invalid_code
+    part: problem
+    value:
+      code: invalid_code
+      category: auth
+      message: Неверный код, осталось 4 попытки
+      fields: []
+      request_id: 01a27db1-f989-7442-b0b0-533cac420311
+    json: '{"category":"auth","code":"invalid_code","fields":[],"message":"Неверный код, осталось 4 попытки","request_id":"01a27db1-f989-7442-b0b0-533cac420311"}'

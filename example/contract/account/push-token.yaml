@@ -1,0 +1,47 @@
+# account.push_token — токен мобильного пуша (FCM, после MVP — APNs) для текущей сессии: Android шлёт его сразу после
+# входа и при каждой смене токена в FCM. Токен привязан к сессии: удаляется при её отзыве, выходе и когда FCM/APNs
+# отвечают «недействителен». Пуш нужен, когда клиент не на связи 2 мин. Сценарий — «Доставка напоминания».
+
+operation: account.push_token
+kind: request
+transport: http
+http:
+  method: PUT
+  path: /v1/me/push-token
+status: live
+since: v1
+clients: [android, server]
+auth: user
+summary: "Регистрация токена мобильного пуша для текущей сессии."
+
+request:
+  platform:
+    type: string
+    required: true
+    enum: [android, ios]
+    desc: Куда слать — FCM или APNs
+  token:
+    type: string
+    required: true
+    desc: Токен устройства от FCM или APNs, до 4096 символов; null — снять токен, например когда пользователь запретил уведомления
+
+response: {}
+
+errors:
+  - code: invalid_fields
+    category: validation
+    fields:
+      platform: [required, not_allowed]
+      token: [too_long]
+
+golden:
+  - name: request
+    part: request
+    value:
+      platform: android
+      token: fcm-demo-anna-phone
+    json: '{"platform":"android","token":"fcm-demo-anna-phone"}'
+  - name: ok
+    part: response
+    value: {}
+    json: '{}'

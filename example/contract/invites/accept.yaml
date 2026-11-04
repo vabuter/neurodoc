@@ -1,0 +1,82 @@
+# invites.accept — принять приглашение и вступить в дом. Код переживает регистрацию: клиент хранит его, пока
+# человек вводит пароль и подтверждает адрес, и после входа сразу возвращает на экран «Вступить». Уже участник —
+# исход already_member, приглашение не тратится. Сценарий — «Приглашение в дом: код, просмотр без входа и вступление».
+
+operation: invites.accept
+kind: request
+transport: http
+http:
+  method: POST
+  path: /v1/invites/{code}/accept
+status: live
+since: v1
+clients: [app, android, server]
+auth: user
+summary: "Принять приглашение и вступить в дом."
+
+request:
+  code:
+    type: string
+    required: true
+    desc: Код — параметр пути, тела нет; нормализуется как в invites.preview
+
+response:
+  state:
+    type: string
+    required: true
+    enum: [joined, already_member]
+    desc: >-
+      joined — человек в доме с ролью из приглашения, помощник — со своим access_until, приглашение использовано;
+      already_member — он уже в этом доме: роль не меняется, приглашение остаётся действующим
+  house:
+    type: House
+    required: true
+    desc: Дом без members, my_role — роль вступившего; клиент сразу открывает его
+
+# При joined остальным участникам уходит houses.changed со scope members.
+errors:
+  - code: invite_invalid
+    category: not_found
+    desc: Приглашение истекло, использовано, пока человек регистрировался, или кода нет — экран «Попросите новое приглашение»
+  - code: house_member_limit
+    category: conflict
+    desc: Дом заполнился (10 участников), пока приглашение ждало
+  - code: house_limit
+    category: conflict
+    desc: У человека уже 5 домов — сначала выйти из какого-то (houses.member_remove)
+
+# 20 декабря: Борис, уже member, по ошибке жмёт «Вступить» по ссылке для Веры из семейного чата — приглашение
+# не тратится; через 17 минут по нему вступает Вера.
+golden:
+  - name: already_member
+    part: response
+    value:
+      state: already_member
+      house:
+        id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+        name: Квартира на Лесной
+        time_zone: Europe/Moscow
+        hemisphere: north
+        morning_window_start: "08:00"
+        morning_window_end: "10:00"
+        my_role: member
+        plants_count: 4
+        sensors_count: 3
+        created_at: "2026-09-20T17:05:11.284Z"
+    json: '{"house":{"created_at":"2026-09-20T17:05:11.284Z","hemisphere":"north","id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","morning_window_end":"10:00","morning_window_start":"08:00","my_role":"member","name":"Квартира на Лесной","plants_count":4,"sensors_count":3,"time_zone":"Europe/Moscow"},"state":"already_member"}'
+  - name: joined
+    part: response
+    value:
+      state: joined
+      house:
+        id: 01a0bfc7-6674-75b3-9f0c-50151ec9cc4c
+        name: Квартира на Лесной
+        time_zone: Europe/Moscow
+        hemisphere: north
+        morning_window_start: "08:00"
+        morning_window_end: "10:00"
+        my_role: helper
+        plants_count: 4
+        sensors_count: 3
+        created_at: "2026-09-20T17:05:11.284Z"
+    json: '{"house":{"created_at":"2026-09-20T17:05:11.284Z","hemisphere":"north","id":"01a0bfc7-6674-75b3-9f0c-50151ec9cc4c","morning_window_end":"10:00","morning_window_start":"08:00","my_role":"helper","name":"Квартира на Лесной","plants_count":4,"sensors_count":3,"time_zone":"Europe/Moscow"},"state":"joined"}'
